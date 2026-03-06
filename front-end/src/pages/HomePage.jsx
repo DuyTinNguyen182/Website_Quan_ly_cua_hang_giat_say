@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-const ActionCard = ({ icon, title, description, hoverClass, iconBgClass }) => (
+const ActionCard = ({ icon, title, description, hoverClass, iconBgClass, onClick }) => (
   <div
+    onClick={onClick}
     className={`bg-white p-6 rounded-xl border-2 border-dashed border-slate-200 text-center transition-all cursor-pointer group ${hoverClass}`}
   >
     <div
@@ -93,7 +94,8 @@ export default function HomePage() {
               </a>
               <a
                 className="px-3 py-1.5 rounded-md flex items-center gap-1.5 text-[11px] font-bold hover:bg-white/10 transition-colors nav-link-text"
-                href="#"
+                href="/nhan-do"
+                onClick={(e) => { e.preventDefault(); navigate("/nhan-do"); }}
               >
                 <span className="material-symbols-outlined text-[18px]">
                   add_circle
@@ -102,7 +104,8 @@ export default function HomePage() {
               </a>
               <a
                 className="px-3 py-1.5 rounded-md flex items-center gap-1.5 text-[11px] font-bold hover:bg-white/10 transition-colors nav-link-text"
-                href="#"
+                href="/danh-sach-do"
+                onClick={(e) => { e.preventDefault(); navigate("/danh-sach-do"); }}
               >
                 <span className="material-symbols-outlined text-[18px]">
                   fact_check
@@ -111,7 +114,8 @@ export default function HomePage() {
               </a>
               <a
                 className="px-3 py-1.5 rounded-md flex items-center gap-1.5 text-[11px] font-bold hover:bg-white/10 transition-colors nav-link-text"
-                href="#"
+                href="/thu-chi"
+                onClick={(e) => { e.preventDefault(); navigate("/thu-chi"); }}
               >
                 <span className="material-symbols-outlined text-[18px]">
                   payments
@@ -178,6 +182,7 @@ export default function HomePage() {
             description="Nhận đồ và lập phiếu cho khách"
             hoverClass="hover:border-accent-green/50"
             iconBgClass="bg-accent-green"
+            onClick={() => navigate("/nhan-do")}
           />
           <ActionCard
             icon="playlist_add_check"
@@ -185,6 +190,7 @@ export default function HomePage() {
             description="Quản lý tình trạng đơn hàng"
             hoverClass="hover:border-accent-blue/50"
             iconBgClass="bg-accent-blue"
+            onClick={() => navigate("/danh-sach-do")}
           />
           <ActionCard
             icon="swap_horiz"
@@ -192,6 +198,7 @@ export default function HomePage() {
             description="Thu, Chi ngoài dịch vụ giặt ủi"
             hoverClass="hover:border-accent-orange/50"
             iconBgClass="bg-accent-orange"
+            onClick={() => navigate("/thu-chi")}
           />
         </div>
 

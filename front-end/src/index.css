@@ -39,4 +39,14 @@
   .feature-card:hover {
     transform: translateY(-2px);
   }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 10px;
+  }
 }
