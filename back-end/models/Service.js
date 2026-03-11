@@ -3,12 +3,15 @@ const mongoose = require("mongoose");
 const serviceSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
-    price_type: {
-      type: String,
-      enum: ["PER_KG", "PER_ITEM"],
+    
+    unit_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Unit",
       required: true,
     },
+    
     price: { type: Number, required: true },
+    note: { type: String },
     is_active: { type: Boolean, default: true },
   },
   { timestamps: true }

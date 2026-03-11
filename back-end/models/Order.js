@@ -26,12 +26,19 @@ const orderSchema = new mongoose.Schema(
 
     payment_method: {
       type: String,
-      enum: ["CASH", "BANK", "EWALLET"],
+      enum: ["CASH", "BANK"],
       default: "CASH",
     },
 
     expected_return_date: { type: Date },
     note: { type: String },
+
+    // Liên kết vị trí Kệ lưu đồ
+    shelf_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Shelf",
+      default: null, // Đơn mới nhận có thể chưa có kệ
+    },
 
     created_by: {
       type: mongoose.Schema.Types.ObjectId,
