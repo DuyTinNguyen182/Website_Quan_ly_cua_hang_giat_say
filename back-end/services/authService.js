@@ -16,20 +16,20 @@ const getUserById = async (id) => {
 };
 
 // Tạo user mới (dành cho Admin)
-const createUser = async ({ full_name, phone, password, role }) => {
+const createUser = async ({ full_name, phone, email, gender, password, role }) => {
   const existing = await User.findOne({ phone });
   if (existing) throw new Error("Số điện thoại đã tồn tại");
 
   const hashed = await bcrypt.hash(password, SALT_ROUNDS);
-  const user = new User({ full_name, phone, password: hashed, role });
+  const user = new User({ full_name, phone, email, gender, password: hashed, role });
   return await user.save();
 };
 
 // Cập nhật thông tin user
-const updateUser = async (id, { full_name, phone, role, is_active }) => {
+const updateUser = async (id, { full_name, phone, email, gender, role, is_active }) => {
   return await User.findByIdAndUpdate(
     id,
-    { full_name, phone, role, is_active },
+    { full_name, phone, email, gender, role, is_active },
     { new: true, runValidators: true }
   ).select("-password");
 };
