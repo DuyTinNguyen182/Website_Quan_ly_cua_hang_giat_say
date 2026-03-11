@@ -230,15 +230,27 @@ export default function DanhSachDoPage() {
                 active
               />
               <NavLink href="/thu-chi" icon="payments" label="THU - CHI" />
-              <button className="px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-colors nav-link-text">
-                <span className="material-symbols-outlined text-[18px]">
-                  analytics
-                </span>
-                KẾT QUẢ KINH DOANH
-                <span className="material-symbols-outlined text-[16px]">
-                  expand_more
-                </span>
-              </button>
+              <div className="relative group">
+                <button className="px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-colors nav-link-text">
+                  <span className="material-symbols-outlined text-[18px]">
+                    analytics
+                  </span>
+                  KẾT QUẢ KINH DOANH
+                  <span className="material-symbols-outlined text-[16px]">
+                    expand_more
+                  </span>
+                </button>
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <button onClick={() => navigate("/bao-cao-doanh-thu")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">bar_chart</span>
+                    Báo cáo doanh thu tháng
+                  </button>
+                  <button onClick={() => navigate("/ket-qua-kinh-doanh")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+                    Sổ quỹ cửa hàng
+                  </button>
+                </div>
+              </div>
               <button className="px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-colors nav-link-text">
                 <span className="material-symbols-outlined text-[18px]">
                   assignment
