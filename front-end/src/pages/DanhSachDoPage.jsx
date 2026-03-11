@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
+import axiosInstance from "../api/axiosInstance";
 import {
   Search,
   ChevronLeft,
@@ -13,185 +15,171 @@ import {
   Plus,
 } from "lucide-react";
 
-const mockTickets = [
-  {
-    id: "1",
-    code: "CH01260304005",
-    pickupTime: "9:45 SA ngày mai",
-    customerName: "KIM THỊ LIÊN",
-    status: "ĐƠN MỚI",
-    customerPhone: "043678902",
-    customerAddress: "Mậu Thân",
-    staffName: "TRẦN TRUNG PHÚC",
-    createdTime: "9:45 SA, 04/03/2026",
-    shelfPosition: "C-03",
-    totalAmount: 120000,
-  },
-  {
-    id: "2",
-    code: "CH01260304004",
-    pickupTime: "9:45 SA ngày mai",
-    paymentStatus: "Thanh toán trước (Chuyển khoản)",
-    customerName: "KIM THỊ LIÊN",
-    status: "ĐƠN MỚI",
-    customerPhone: "043678902",
-    customerAddress: "Mậu Thân",
-    staffName: "TRẦN TRUNG PHÚC",
-    createdTime: "9:41 SA, 04/03/2026",
-    shelfPosition: "C-02",
-    totalAmount: 290000,
-  },
-  {
-    id: "3",
-    code: "CH01260304002",
-    pickupTime: "9:45 SA Thứ 6, 06/03",
-    customerName: "KIM THỊ LIÊN",
-    status: "ĐANG GIẶT",
-    customerPhone: "043678902",
-    customerAddress: "Mậu Thân",
-    staffName: "TRẦN TRUNG PHÚC",
-    createdTime: "9:30 SA, 04/03/2026",
-    shelfPosition: "C-03",
-    totalAmount: 115000,
-  },
-  {
-    id: "4",
-    code: "CH01260304001",
-    pickupTime: "9:45 SA Thứ 7, 07/03",
-    customerName: "TRẦN VĂN HÙNG",
-    status: "ĐƠN MỚI",
-    customerPhone: "0987098234",
-    customerAddress: "Sơn Thông",
-    staffName: "TRẦN TRUNG PHÚC",
-    createdTime: "9:28 SA, 04/03/2026",
-    shelfPosition: "A-01",
-    totalAmount: 244000,
-  },
-];
-
 const statusTabs = [
   { label: "Tất cả", value: null },
-  { label: "Đơn mới", value: "ĐƠN MỚI" },
-  { label: "Đang giặt", value: "ĐANG GIẶT" },
-  { label: "Giặt xong", value: "GIẶT XONG" },
-  { label: "Giao khách", value: "GIAO KHÁCH" },
-  { label: "Khách nợ", value: "KHÁCH NỢ" },
+  { label: "Đơn mới", value: "RECEIVED" },
+  { label: "Đang giặt", value: "WASHING" },
+  { label: "Giặt xong", value: "READY" },
+  { label: "Giao khách", value: "COMPLETED" },
+  { label: "Đã hủy", value: "CANCELLED" },
 ];
 
+const STATUS_LABEL = {
+  RECEIVED: "ĐƠN MỚI",
+  WASHING: "ĐANG GIẶT",
+  READY: "GIẶT XONG",
+  COMPLETED: "GIAO KHÁCH",
+  CANCELLED: "ĐÃ HỦY",
+};
+
 const statusColors = {
-  "ĐƠN MỚI": "bg-orange-500",
-  "ĐANG GIẶT": "bg-nav-bg",
-  "GIẶT XONG": "bg-accent-green",
-  "GIAO KHÁCH": "bg-sky-500",
-  "KHÁCH NỢ": "bg-red-500",
+  RECEIVED: "bg-orange-500",
+  WASHING: "bg-nav-bg",
+  READY: "bg-accent-green",
+  COMPLETED: "bg-sky-500",
+  CANCELLED: "bg-red-500",
 };
 
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("vi-VN").format(amount);
 
 /* ─── Ticket row ─── */
-const TicketItem = ({ ticket }) => (
-  <div className="grid grid-cols-12 px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors items-start">
-    {/* Dots */}
-    <div className="col-span-1 text-slate-300">
-      <MoreVertical className="w-5 h-5 cursor-pointer" />
-    </div>
+const TicketItem = ({ ticket, onStatusChange }) => {
+  const nextStatus = {
+    RECEIVED: "WASHING",
+    WASHING: "READY",
+    READY: "COMPLETED",
+  };
+  const canAdvance = nextStatus[ticket.status];
 
-    {/* Thông tin phiếu */}
-    <div className="col-span-3 space-y-1">
-      <div className="text-nav-bg font-bold text-xs uppercase cursor-pointer hover:underline">
-        Chuyển trạng thái
+  const formatDate = (iso) => {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    const pad = (v) => String(v).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+  };
+
+  return (
+    <div className="grid grid-cols-12 px-4 py-4 border-b border-slate-100 hover:bg-slate-50 transition-colors items-start">
+      {/* Dots */}
+      <div className="col-span-1 text-slate-300">
+        <MoreVertical className="w-5 h-5 cursor-pointer" />
       </div>
-      <div className="text-sm font-medium">
-        Mã phiếu: <span className="font-bold">{ticket.code}</span>
-      </div>
-      <div className="text-xs text-slate-500">
-        Hẹn lấy: {ticket.pickupTime}
-      </div>
-      {ticket.paymentStatus && (
-        <div className="flex items-center text-xs text-emerald-600 font-medium">
-          <CheckCircle className="w-4 h-4 mr-1" />
-          {ticket.paymentStatus}
+
+      {/* Thông tin phiếu */}
+      <div className="col-span-3 space-y-1">
+        {canAdvance && (
+          <button
+            onClick={() => onStatusChange(ticket._id, nextStatus[ticket.status])}
+            className="text-nav-bg font-bold text-xs uppercase cursor-pointer hover:underline"
+          >
+            Chuyển trạng thái
+          </button>
+        )}
+        <div className="text-sm font-medium">
+          Mã phiếu: <span className="font-bold">{ticket.order_code}</span>
         </div>
-      )}
-    </div>
+        <div className="text-xs text-slate-500">
+          Hẹn lấy: {formatDate(ticket.expected_return_date)}
+        </div>
+        {ticket.payment_status === "PAID" && (
+          <div className="flex items-center text-xs text-emerald-600 font-medium">
+            <CheckCircle className="w-4 h-4 mr-1" />
+            Đã thanh toán ({ticket.payment_method === "BANK" ? "Chuyển khoản" : "Tiền mặt"})
+          </div>
+        )}
+      </div>
 
-    {/* Khách hàng */}
-    <div className="col-span-4 space-y-1">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-nav-bg font-bold uppercase">
-          {ticket.customerName}
+      {/* Khách hàng */}
+      <div className="col-span-4 space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-nav-bg font-bold uppercase">
+            {ticket.customer_id?.full_name ?? "—"}
+          </span>
+          <span
+            className={`text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase ${statusColors[ticket.status] || "bg-slate-500"}`}
+          >
+            {STATUS_LABEL[ticket.status] ?? ticket.status}
+          </span>
+        </div>
+        <div className="text-sm">
+          Điện thoại: <span className="font-medium">{ticket.customer_id?.phone ?? "—"}</span>
+        </div>
+      </div>
+
+      {/* Nhân viên lập */}
+      <div className="col-span-3 space-y-1">
+        <div className="font-bold text-slate-600 uppercase">
+          {ticket.created_by?.full_name ?? "—"}
+        </div>
+        <div className="flex items-center text-xs text-slate-500">
+          <Clock className="w-4 h-4 mr-1" />
+          {formatDate(ticket.created_at)}
+        </div>
+        <div className="text-sm">
+          Vị trí kệ: <span className="font-bold">{ticket.shelf_id?.name ?? "—"}</span>
+        </div>
+      </div>
+
+      {/* Tổng tiền */}
+      <div className="col-span-1 text-right">
+        <span className="inline-block px-3 py-1 bg-indigo-50 text-nav-bg font-bold rounded-full text-sm">
+          {formatCurrency(ticket.total_amount)}
         </span>
-        <span
-          className={`text-white text-[10px] px-2 py-0.5 rounded font-bold uppercase ${statusColors[ticket.status] || "bg-slate-500"}`}
-        >
-          {ticket.status}
-        </span>
-      </div>
-      <div className="text-sm">
-        Điện thoại: <span className="font-medium">{ticket.customerPhone}</span>
-      </div>
-      <div className="text-sm">
-        Địa chỉ: <span className="font-medium">{ticket.customerAddress}</span>
       </div>
     </div>
-
-    {/* Nhân viên lập */}
-    <div className="col-span-3 space-y-1">
-      <div className="font-bold text-slate-600 uppercase">
-        {ticket.staffName}
-      </div>
-      <div className="flex items-center text-xs text-slate-500">
-        <Clock className="w-4 h-4 mr-1" />
-        {ticket.createdTime}
-      </div>
-      <div className="text-sm">
-        Vị trí kệ: <span className="font-bold">{ticket.shelfPosition}</span>
-      </div>
-    </div>
-
-    {/* Tổng tiền */}
-    <div className="col-span-1 text-right">
-      <span className="inline-block px-3 py-1 bg-indigo-50 text-nav-bg font-bold rounded-full text-sm">
-        {formatCurrency(ticket.totalAmount)}
-      </span>
-    </div>
-  </div>
-);
+  );
+};
 
 /* ════════════════════════════════════════════ */
 export default function DanhSachDoPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Người dùng", store: "" });
+  const { user } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    else navigate("/login");
-  }, [navigate]);
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
+  const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const loadOrders = () => {
+    setLoading(true);
+    const params = activeTab ? `?status=${activeTab}` : "";
+    axiosInstance.get(`/orders${params}`)
+      .then((res) => setOrders(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { if (user) loadOrders(); }, [activeTab, user]);
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      await axiosInstance.patch(`/orders/${id}/status`, { status: newStatus });
+      loadOrders();
+    } catch {
+      alert("Không thể cập nhật trạng thái!");
+    }
+  };
 
   const filtered = useMemo(() => {
-    let list = mockTickets;
-    if (activeTab) list = list.filter((t) => t.status === activeTab);
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      list = list.filter(
-        (t) =>
-          t.code.toLowerCase().includes(q) ||
-          t.customerName.toLowerCase().includes(q) ||
-          t.customerPhone.includes(q),
-      );
-    }
-    return list;
-  }, [activeTab, searchTerm]);
+    if (!searchTerm.trim()) return orders;
+    const q = searchTerm.toLowerCase();
+    return orders.filter(
+      (t) =>
+        t.order_code?.toLowerCase().includes(q) ||
+        t.customer_id?.full_name?.toLowerCase().includes(q) ||
+        t.customer_id?.phone?.includes(q),
+    );
+  }, [orders, searchTerm]);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
-      <Header user={user} activePage="danh-sach-do" />
+      <Header activePage="danh-sach-do" />
 
       {/* ─── Filter Bar ─── */}
       <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-2 flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -278,9 +266,11 @@ export default function DanhSachDoPage() {
             </div>
 
             {/* Ticket rows */}
-            {filtered.length > 0 ? (
+            {loading ? (
+              <div className="p-12 text-center text-slate-400 italic">Đang tải...</div>
+            ) : filtered.length > 0 ? (
               filtered.map((ticket) => (
-                <TicketItem key={ticket.id} ticket={ticket} />
+                <TicketItem key={ticket._id} ticket={ticket} onStatusChange={handleStatusChange} />
               ))
             ) : (
               <div className="p-12 text-center text-slate-400 italic">

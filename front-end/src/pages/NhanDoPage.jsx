@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
+import axiosInstance from "../api/axiosInstance";
 import {
   PlusCircle,
   ChevronDown,
@@ -18,21 +20,6 @@ import {
   X,
 } from "lucide-react";
 
-const shelves = [
-  "A-01","A-02","A-03","A-04","A-05","A-06",
-  "B-01","B-02","B-03","B-04","B-05","B-06",
-  "C-01","C-02","C-03","C-04","C-05","C-06",
-];
-
-const services = [
-  { id: 1, name: "Quần áo thông thường", price: 15000, unit: "Kg" },
-  { id: 2, name: "Áo Vest", price: 60000, unit: "Kg" },
-  { id: 3, name: "Bộ Vest", price: 80000, unit: "Kg" },
-  { id: 4, name: "Áo khoác, Áo gió", price: 20000, unit: "Cái" },
-  { id: 5, name: "Ruột gối", price: 30000, unit: "Cái" },
-  { id: 6, name: "Gấu bông nhỏ", price: 60000, unit: "Con" },
-];
-
 const formatMoney = (n) =>
   n.toLocaleString("vi-VN");
 
@@ -47,16 +34,16 @@ const today = () => {
 
 export default function NhanDoPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Người dùng", store: "" });
+  const { user, logout } = useAuth();
 
   /* --- auth --- */
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    else navigate("/login");
-  }, [navigate]);
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
   /* --- state --- */
+  const [shelves, setShelves] = useState([]);
+  const [services, setServices] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [surcharge, setSurcharge] = useState(0);
@@ -69,6 +56,38 @@ export default function NhanDoPage() {
   const [selectedShelf, setSelectedShelf] = useState(null);
   const [shelfModalOpen, setShelfModalOpen] = useState(false);
   const [shelfSearch, setShelfSearch] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  // customer search
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [customers, setCustomers] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+
+  /* --- load shelves & services on mount --- */
+  useEffect(() => {
+    axiosInstance.get("/shelves").then((res) => {
+      setShelves(res.data.filter((s) => s.is_active).map((s) => ({ _id: s._id, name: s.name })));
+    }).catch(() => {});
+    axiosInstance.get("/services").then((res) => {
+      setServices(res.data.filter((s) => s.is_active).map((s) => ({
+        id: s._id,
+        name: s.name,
+        price: s.price,
+        unit: s.unit_id?.name ?? "",
+      })));
+    }).catch(() => {});
+  }, []);
+
+  /* --- customer search debounce --- */
+  useEffect(() => {
+    if (!customerSearch.trim()) { setCustomers([]); return; }
+    const timer = setTimeout(() => {
+      axiosInstance.get(`/customers?search=${encodeURIComponent(customerSearch)}`)
+        .then((res) => setCustomers(res.data))
+        .catch(() => setCustomers([]));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [customerSearch]);
 
   /* --- derived --- */
   const subtotal = selectedItems.reduce((s, i) => s + i.price * i.qty, 0);
@@ -109,13 +128,72 @@ export default function NhanDoPage() {
   );
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
+  };
+
+  /* --- build expected_return_date from appointmentDate/Time state --- */
+  const buildReturnDate = () => {
+    const [dd, mm, yy] = appointmentDate.split("/");
+    return new Date(`20${yy}-${mm}-${dd}T${appointmentTime}:00`).toISOString();
+  };
+
+  /* --- reset form --- */
+  const resetForm = () => {
+    setSelectedItems([]);
+    setSurcharge(0);
+    setDiscount(0);
+    setIsDiscountPercent(true);
+    setIsPrepaid(false);
+    setNote("");
+    setSelectedShelf(null);
+    setSelectedCustomer(null);
+    setCustomerSearch("");
+  };
+
+  /* --- save order --- */
+  const handleSave = async (print = false) => {
+    if (selectedItems.length === 0) return;
+    if (!selectedCustomer) { alert("Vui lòng chọn khách hàng!"); return; }
+    setSubmitting(true);
+    try {
+      const shelfObj = shelves.find((s) => s.name === selectedShelf);
+      const orderPayload = {
+        customer_id: selectedCustomer._id,
+        payment_method: "CASH",
+        payment_status: isPrepaid ? "PAID" : "UNPAID",
+        expected_return_date: buildReturnDate(),
+        note,
+        shelf_id: shelfObj?._id ?? undefined,
+        created_by: user.id,
+      };
+      const orderRes = await axiosInstance.post("/orders", orderPayload);
+      const orderId = orderRes.data._id;
+
+      await Promise.all(
+        selectedItems.map((item) =>
+          axiosInstance.post("/order-items", {
+            order_id: orderId,
+            service_id: item.id,
+            quantity: item.qty,
+            price: item.price,
+          })
+        )
+      );
+
+      resetForm();
+      if (print) navigate("/danh-sach-do");
+      else alert("Lưu phiếu thành công!");
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi tạo phiếu!");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
-      <Header user={user} activePage="nhan-do" />
+      <Header activePage="nhan-do" />
 
       {/* ─── Tab bar ─── */}
       <div className="bg-white border-b border-gray-200 h-10 flex items-center px-4 shrink-0 justify-between">
@@ -254,13 +332,40 @@ export default function NhanDoPage() {
         <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
           <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-5">
             {/* Customer search */}
-            <div className="flex items-center border-b border-gray-200 pb-2">
+            <div className="relative flex items-center border-b border-gray-200 pb-2">
               <input
                 type="text"
+                value={selectedCustomer ? selectedCustomer.full_name : customerSearch}
+                onChange={(e) => {
+                  setCustomerSearch(e.target.value);
+                  setSelectedCustomer(null);
+                  setShowCustomerDropdown(true);
+                }}
+                onFocus={() => setShowCustomerDropdown(true)}
                 className="flex-1 border-none focus:ring-0 focus:outline-none text-sm italic p-0 placeholder:text-gray-400"
                 placeholder="Tìm kiếm tên, điện thoại khách..."
               />
-              <UserPlus size={20} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+              {selectedCustomer ? (
+                <button onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); }} className="text-gray-400 hover:text-gray-600">
+                  <X size={16} />
+                </button>
+              ) : (
+                <UserPlus size={20} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+              )}
+              {showCustomerDropdown && customers.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  {customers.map((c) => (
+                    <div
+                      key={c._id}
+                      className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer"
+                      onMouseDown={() => { setSelectedCustomer(c); setCustomerSearch(""); setShowCustomerDropdown(false); setCustomers([]); }}
+                    >
+                      <span className="font-bold">{c.full_name}</span>
+                      <span className="text-gray-500 ml-2">{c.phone}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Order info */}
@@ -413,18 +518,20 @@ export default function NhanDoPage() {
           {/* Bottom actions */}
           <div className="p-3 bg-gray-50 border-t border-gray-100 flex gap-2 shrink-0">
             <button
-              disabled={selectedItems.length === 0}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity ${selectedItems.length > 0 ? "bg-accent-blue text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"}`}
+              disabled={selectedItems.length === 0 || submitting}
+              onClick={() => handleSave(true)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity ${selectedItems.length > 0 && !submitting ? "bg-accent-blue text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"}`}
             >
               <Printer size={18} />
               Lưu & In
             </button>
             <button
-              disabled={selectedItems.length === 0}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity ${selectedItems.length > 0 ? "bg-accent-green text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"}`}
+              disabled={selectedItems.length === 0 || submitting}
+              onClick={() => handleSave(false)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity ${selectedItems.length > 0 && !submitting ? "bg-accent-green text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"}`}
             >
               <Save size={18} />
-              Lưu Phiếu
+              {submitting ? "Đang lưu..." : "Lưu Phiếu"}
             </button>
           </div>
         </div>
@@ -459,21 +566,21 @@ export default function NhanDoPage() {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
               <div className="grid grid-cols-3 gap-3">
                 {shelves
-                  .filter((s) => s.toLowerCase().includes(shelfSearch.toLowerCase()))
+                  .filter((s) => s.name.toLowerCase().includes(shelfSearch.toLowerCase()))
                   .map((shelf) => (
                     <button
-                      key={shelf}
+                      key={shelf._id}
                       onClick={() => {
-                        setSelectedShelf(shelf);
+                        setSelectedShelf(shelf.name);
                         setShelfModalOpen(false);
                       }}
                       className={`py-3 px-4 rounded-lg border-2 text-sm font-bold transition-all ${
-                        selectedShelf === shelf
+                        selectedShelf === shelf.name
                           ? "border-accent-blue bg-blue-50 text-accent-blue"
                           : "border-gray-200 text-gray-600 hover:border-accent-blue hover:bg-blue-50/50"
                       }`}
                     >
-                      {shelf}
+                      {shelf.name}
                     </button>
                   ))}
               </div>

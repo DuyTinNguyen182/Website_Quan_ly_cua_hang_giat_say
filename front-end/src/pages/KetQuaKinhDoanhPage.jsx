@@ -1,20 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
+import axiosInstance from "../api/axiosInstance";
 import { ChevronLeft, Filter } from "lucide-react";
-
-const summaryData = {
-  thuHomNay: 520000,
-  chiHomNay: 225000,
-  soDuHienTai: 295000,
-};
-
-const detailRows = [
-  { label: "1. Tiền thu từ dịch vụ giặt ủi", amount: 520000, hasDetail: true },
-  { label: "2. Các khoản thu khác", amount: 0, hasDetail: true },
-  { label: "3. Các khoản chi phát sinh", amount: 225000, hasDetail: true },
-  { label: "4. Tiền chưa thu từ dịch vụ giặt ủi", amount: 479000, hasDetail: true },
-];
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 
@@ -32,25 +21,54 @@ const SummaryCard = ({ icon, title, amount, bgClass, textClass }) => (
 
 export default function KetQuaKinhDoanhPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Người dùng", store: "" });
+  const { user } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    else navigate("/login");
-  }, [navigate]);
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
   const [activeTab, setActiveTab] = useState("TẤT CẢ");
   const tabs = ["TẤT CẢ", "TIỀN MẶT", "CHUYỂN KHOẢN"];
 
+  const [data, setData] = useState({ income: 0, expense: 0, unpaid: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    // Get today's range
+    const today = new Date();
+    const from = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const to = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString();
+
+    Promise.all([
+      axiosInstance.get(`/transactions?type=INCOME&from=${from}&to=${to}`),
+      axiosInstance.get(`/transactions?type=EXPENSE&from=${from}&to=${to}`),
+      axiosInstance.get(`/orders?payment_status=UNPAID`),
+    ])
+      .then(([incRes, expRes, unpaidRes]) => {
+        const income = incRes.data.reduce((s, t) => s + t.amount, 0);
+        const expense = expRes.data.reduce((s, t) => s + t.amount, 0);
+        const unpaid = unpaidRes.data.reduce((s, o) => s + o.total_amount, 0);
+        setData({ income, expense, unpaid });
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user]);
+
   const soDuTruoc = 0;
-  const soDuHienTai =
-    soDuTruoc + detailRows[0].amount + detailRows[1].amount - detailRows[2].amount;
-  const tongQuy = soDuHienTai + detailRows[3].amount;
+  const soDuHienTai = soDuTruoc + data.income - data.expense;
+  const tongQuy = soDuHienTai + data.unpaid;
+
+  const detailRows = [
+    { label: "1. Tiền thu từ dịch vụ giặt ủi", amount: data.income, hasDetail: true },
+    { label: "2. Các khoản thu khác", amount: 0, hasDetail: true },
+    { label: "3. Các khoản chi phát sinh", amount: data.expense, hasDetail: true },
+    { label: "4. Tiền chưa thu từ dịch vụ giặt ủi", amount: data.unpaid, hasDetail: true },
+];
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
-      <Header user={user} activePage="ket-qua-kinh-doanh" />
+      <Header activePage="ket-qua-kinh-doanh" />
 
       {/* ─── Sub-header ─── */}
       <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -96,21 +114,21 @@ export default function KetQuaKinhDoanhPage() {
             <SummaryCard
               icon="trending_up"
               title="THU HÔM NAY"
-              amount={`+${formatCurrency(summaryData.thuHomNay)}`}
+              amount={loading ? "—" : `+${formatCurrency(data.income)}`}
               bgClass="bg-accent-green"
               textClass="text-accent-green"
             />
             <SummaryCard
               icon="trending_down"
               title="CHI HÔM NAY"
-              amount={`-${formatCurrency(summaryData.chiHomNay)}`}
+              amount={loading ? "—" : `-${formatCurrency(data.expense)}`}
               bgClass="bg-accent-orange"
               textClass="text-accent-orange"
             />
             <SummaryCard
               icon="account_balance_wallet"
               title="SỐ DƯ HIỆN TẠI"
-              amount={formatCurrency(summaryData.soDuHienTai)}
+              amount={loading ? "—" : formatCurrency(soDuHienTai)}
               bgClass="bg-accent-blue"
               textClass="text-accent-blue"
             />

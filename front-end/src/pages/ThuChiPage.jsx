@@ -1,6 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
+import axiosInstance from "../api/axiosInstance";
 import {
   ChevronLeft,
   Check,
@@ -13,69 +15,96 @@ import {
   X,
 } from "lucide-react";
 
-const mockRecords = [
-  {
-    id: "1",
-    title: "Mua bột giặt",
-    type: "CHI",
-    code: "CH260304.01",
-    method: "Tiền mặt",
-    recipient: "NGUYỄN VĂN PHƯƠNG",
-    creator: "TRẦN TRUNG PHÚC",
-    time: "10:16 SA, 04/03/2026",
-    amount: 112000,
-  },
-  {
-    id: "2",
-    title: "Mua nước xả vải",
-    type: "CHI",
-    code: "CH260304.02",
-    method: "Chuyển khoản",
-    recipient: "PHÙNG THỊ BÉ",
-    creator: "TRẦN TRUNG PHÚC",
-    time: "10:17 SA, 04/03/2026",
-    amount: 113000,
-  },
-];
-
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
+
+const formatDate = (iso) => {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const pad = (v) => String(v).padStart(2, "0");
+  const h = d.getHours(), m = d.getMinutes();
+  const period = h < 12 ? "SA" : "CH";
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${pad(m)} ${period}, ${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+};
 
 export default function ThuChiPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Người dùng", store: "" });
+  const { user } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    else navigate("/login");
-  }, [navigate]);
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
+  // modal state for creating new transaction
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: new Date().toISOString().slice(0, 10) });
+  const [saving, setSaving] = useState(false);
+
+  const loadRecords = () => {
+    setLoading(true);
+    axiosInstance.get("/transactions")
+      .then((res) => setRecords(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { if (user) loadRecords(); }, [user]);
 
   const filtered = useMemo(() => {
-    if (!searchTerm.trim()) return mockRecords;
+    if (!searchTerm.trim()) return records;
     const q = searchTerm.toLowerCase();
-    return mockRecords.filter(
+    return records.filter(
       (r) =>
-        r.title.toLowerCase().includes(q) ||
-        r.code.toLowerCase().includes(q) ||
-        r.recipient.toLowerCase().includes(q),
+        r.category?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q) ||
+        r.created_by?.full_name?.toLowerCase().includes(q),
     );
-  }, [searchTerm]);
+  }, [records, searchTerm]);
 
   const totalThu = useMemo(
-    () => mockRecords.filter((r) => r.type === "THU").reduce((s, r) => s + r.amount, 0),
-    [],
+    () => records.filter((r) => r.type === "INCOME").reduce((s, r) => s + r.amount, 0),
+    [records],
   );
   const totalChi = useMemo(
-    () => mockRecords.filter((r) => r.type === "CHI").reduce((s, r) => s + r.amount, 0),
-    [],
+    () => records.filter((r) => r.type === "EXPENSE").reduce((s, r) => s + r.amount, 0),
+    [records],
   );
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Xóa phiếu này?")) return;
+    try {
+      await axiosInstance.delete(`/transactions/${id}`);
+      loadRecords();
+    } catch { alert("Không thể xóa!"); }
+  };
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!form.category.trim() || !form.amount) return;
+    setSaving(true);
+    try {
+      await axiosInstance.post("/transactions", {
+        ...form,
+        amount: Number(form.amount),
+        created_by: user.id,
+      });
+      setShowModal(false);
+      setForm({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: new Date().toISOString().slice(0, 10) });
+      loadRecords();
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi tạo phiếu!");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
-      <Header user={user} activePage="thu-chi" />
+      <Header activePage="thu-chi" />
 
       {/* ─── Sub-header ─── */}
       <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -175,7 +204,7 @@ export default function ThuChiPage() {
                       Thông tin phiếu
                     </th>
                     <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200">
-                      Hình thức
+                      Ghi chú
                     </th>
                     <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200">
                       Nhân viên lập
@@ -183,12 +212,19 @@ export default function ThuChiPage() {
                     <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200 text-right">
                       Số tiền
                     </th>
+                    {isEditMode && (
+                      <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200 text-center">
+                        Xóa
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length > 0 ? (
+                  {loading ? (
+                    <tr><td colSpan={6} className="py-12 text-center text-slate-400 italic">Đang tải...</td></tr>
+                  ) : filtered.length > 0 ? (
                     filtered.map((r) => (
-                      <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={r._id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-4 px-6 border-b border-gray-100 align-top text-center">
                           <Printer
                             size={20}
@@ -198,37 +234,30 @@ export default function ThuChiPage() {
                         <td className="py-4 px-6 border-b border-gray-100 align-top">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-bold text-gray-800 text-[14px]">
-                              {r.title}
+                              {r.category}
                             </span>
                             <span
                               className={`text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                                r.type === "THU" ? "bg-accent-green" : "bg-orange-500"
+                                r.type === "INCOME" ? "bg-accent-green" : "bg-orange-500"
                               }`}
                             >
-                              {r.type}
+                              {r.type === "INCOME" ? "THU" : "CHI"}
                             </span>
                           </div>
                           <div className="text-[12px] text-gray-500">
-                            Mã phiếu:{" "}
-                            <span className="font-semibold text-gray-700">{r.code}</span>
+                            Ngày: <span className="font-semibold text-gray-700">{formatDate(r.transaction_date)}</span>
                           </div>
                         </td>
                         <td className="py-4 px-6 border-b border-gray-100 align-top">
-                          <div className="font-bold text-gray-800 text-[14px] mb-1">
-                            {r.method}
-                          </div>
-                          <div className="text-[12px] text-gray-500 uppercase">
-                            Người nhận:{" "}
-                            <span className="font-bold text-gray-700">{r.recipient}</span>
-                          </div>
+                          <div className="text-[13px] text-gray-600">{r.description || "—"}</div>
                         </td>
                         <td className="py-4 px-6 border-b border-gray-100 align-top">
                           <div className="font-bold text-gray-800 text-[14px] mb-1 uppercase">
-                            {r.creator}
+                            {r.created_by?.full_name ?? "—"}
                           </div>
                           <div className="text-[11px] text-gray-500 flex items-center gap-1">
                             <Clock size={14} />
-                            {r.time}
+                            {formatDate(r.created_at)}
                           </div>
                         </td>
                         <td className="py-4 px-6 border-b border-gray-100 align-top text-right">
@@ -236,11 +265,16 @@ export default function ThuChiPage() {
                             {formatCurrency(r.amount)}
                           </span>
                         </td>
+                        {isEditMode && (
+                          <td className="py-4 px-6 border-b border-gray-100 align-top text-center">
+                            <button onClick={() => handleDelete(r._id)} className="text-red-400 hover:text-red-600 text-xs font-bold">Xóa</button>
+                          </td>
+                        )}
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={5} className="py-12 text-center text-slate-400 italic">
+                      <td colSpan={6} className="py-12 text-center text-slate-400 italic">
                         Không tìm thấy phiếu nào
                       </td>
                     </tr>
@@ -253,9 +287,91 @@ export default function ThuChiPage() {
       </main>
 
       {/* ─── FAB ─── */}
-      <button className="fixed bottom-6 right-6 w-14 h-14 bg-nav-bg text-white rounded-full shadow-lg hover:opacity-90 transition-transform active:scale-95 flex items-center justify-center z-50">
+      <button
+        onClick={() => setShowModal(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-nav-bg text-white rounded-full shadow-lg hover:opacity-90 transition-transform active:scale-95 flex items-center justify-center z-50"
+      >
         <Plus className="w-8 h-8" />
       </button>
+
+      {/* ─── Create Transaction Modal ─── */}
+      {showModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleCreate}
+            className="bg-white rounded-xl shadow-2xl w-[420px] p-6 flex flex-col gap-4"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-gray-800 text-base">Tạo phiếu Thu / Chi</h2>
+              <button type="button" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+            </div>
+
+            <div className="flex gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="type" value="INCOME" checked={form.type === "INCOME"} onChange={(e) => setForm({ ...form, type: e.target.value })} />
+                <span className="text-sm font-semibold text-accent-green">Thu</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="type" value="EXPENSE" checked={form.type === "EXPENSE"} onChange={(e) => setForm({ ...form, type: e.target.value })} />
+                <span className="text-sm font-semibold text-orange-500">Chi</span>
+              </label>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Danh mục *</label>
+              <input
+                required
+                value={form.category}
+                onChange={(e) => setForm({ ...form, category: e.target.value })}
+                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nav-bg/30"
+                placeholder="VD: Mua bột giặt, Tiền điện..."
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Số tiền *</label>
+              <input
+                required
+                type="number"
+                min="0"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nav-bg/30"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Ghi chú</label>
+              <input
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nav-bg/30"
+                placeholder="Ghi chú (tùy chọn)"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-gray-500 block mb-1">Ngày giao dịch *</label>
+              <input
+                required
+                type="date"
+                value={form.transaction_date}
+                onChange={(e) => setForm({ ...form, transaction_date: e.target.value })}
+                className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-nav-bg/30"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-md transition-colors">Hủy</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-bold text-white bg-nav-bg rounded-md hover:opacity-90 disabled:opacity-60">
+                {saving ? "Đang lưu..." : "Lưu phiếu"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

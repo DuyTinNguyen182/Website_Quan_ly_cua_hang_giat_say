@@ -1,23 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
+import axiosInstance from "../api/axiosInstance";
 import { ChevronLeft, Filter, Download } from "lucide-react";
-
-/* ─── mock data: doanh thu 12 tháng ─── */
-const monthlyData = [
-  { month: "01/2026", revenue: 12500000, expense: 3200000 },
-  { month: "02/2026", revenue: 15800000, expense: 4100000 },
-  { month: "03/2026", revenue: 11200000, expense: 2900000 },
-  { month: "04/2026", revenue: 0, expense: 0 },
-  { month: "05/2026", revenue: 0, expense: 0 },
-  { month: "06/2026", revenue: 0, expense: 0 },
-  { month: "07/2026", revenue: 0, expense: 0 },
-  { month: "08/2026", revenue: 0, expense: 0 },
-  { month: "09/2026", revenue: 0, expense: 0 },
-  { month: "10/2026", revenue: 0, expense: 0 },
-  { month: "11/2026", revenue: 0, expense: 0 },
-  { month: "12/2026", revenue: 0, expense: 0 },
-];
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 
@@ -45,7 +31,7 @@ const BarChart = ({ data }) => {
               />
             </div>
             <span className="text-[9px] text-gray-500 font-medium">
-              T{d.month.split("/")[0]}
+              T{d.month.toString().padStart(2, "0")}
             </span>
           </div>
         );
@@ -54,17 +40,47 @@ const BarChart = ({ data }) => {
   );
 };
 
+const buildEmptyMonths = (year) =>
+  Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year, revenue: 0, expense: 0 }));
+
 export default function BaoCaoDoanhThuPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Người dùng", store: "" });
+  const { user } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-    else navigate("/login");
-  }, [navigate]);
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
-  const [selectedYear] = useState("2026");
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [monthlyData, setMonthlyData] = useState(buildEmptyMonths(currentYear));
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoading(true);
+    const from = new Date(selectedYear, 0, 1).toISOString();
+    const to = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
+
+    Promise.all([
+      axiosInstance.get(`/transactions?type=INCOME&from=${from}&to=${to}`),
+      axiosInstance.get(`/transactions?type=EXPENSE&from=${from}&to=${to}`),
+    ])
+      .then(([incRes, expRes]) => {
+        const buckets = buildEmptyMonths(selectedYear);
+        incRes.data.forEach((t) => {
+          const m = new Date(t.transaction_date).getMonth(); // 0-indexed
+          buckets[m].revenue += t.amount;
+        });
+        expRes.data.forEach((t) => {
+          const m = new Date(t.transaction_date).getMonth();
+          buckets[m].expense += t.amount;
+        });
+        setMonthlyData(buckets);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [user, selectedYear]);
 
   const totalRevenue = monthlyData.reduce((s, d) => s + d.revenue, 0);
   const totalExpense = monthlyData.reduce((s, d) => s + d.expense, 0);
@@ -72,7 +88,7 @@ export default function BaoCaoDoanhThuPage() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
-      <Header user={user} activePage="bao-cao-doanh-thu" />
+      <Header activePage="bao-cao-doanh-thu" />
 
       {/* ─── Sub-header ─── */}
       <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0">
@@ -86,9 +102,15 @@ export default function BaoCaoDoanhThuPage() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-gray-500">NĂM:</span>
-          <span className="px-3 py-1 bg-white rounded-full text-xs font-bold text-nav-bg shadow-sm border border-gray-100">
-            {selectedYear}
-          </span>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="px-3 py-1 bg-white rounded-full text-xs font-bold text-nav-bg shadow-sm border border-gray-100 focus:outline-none"
+          >
+            {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center gap-4">
@@ -117,7 +139,7 @@ export default function BaoCaoDoanhThuPage() {
                   TỔNG DOANH THU
                 </p>
                 <p className="text-2xl font-bold text-accent-blue">
-                  {formatCurrency(totalRevenue)}
+                  {loading ? "—" : formatCurrency(totalRevenue)}
                 </p>
               </div>
             </div>
@@ -130,7 +152,7 @@ export default function BaoCaoDoanhThuPage() {
                   TỔNG CHI PHÍ
                 </p>
                 <p className="text-2xl font-bold text-accent-orange">
-                  {formatCurrency(totalExpense)}
+                  {loading ? "—" : formatCurrency(totalExpense)}
                 </p>
               </div>
             </div>
@@ -143,7 +165,7 @@ export default function BaoCaoDoanhThuPage() {
                   LỢI NHUẬN
                 </p>
                 <p className="text-2xl font-bold text-accent-green">
-                  {formatCurrency(totalProfit)}
+                  {loading ? "—" : formatCurrency(totalProfit)}
                 </p>
               </div>
             </div>
@@ -196,7 +218,7 @@ export default function BaoCaoDoanhThuPage() {
                         className="hover:bg-gray-50 transition-colors"
                       >
                         <td className="py-3.5 px-6 border-b border-gray-100 font-semibold text-gray-700">
-                          Tháng {d.month.split("/")[0]}/{d.month.split("/")[1]}
+                          Tháng {String(d.month).padStart(2, "0")}/{d.year}
                         </td>
                         <td className="py-3.5 px-6 border-b border-gray-100 text-right font-bold text-accent-blue">
                           {formatCurrency(d.revenue)}

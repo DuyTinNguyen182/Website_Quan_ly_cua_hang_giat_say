@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const NavLink = ({ href, icon, label, active, navigate }) => (
   <a
@@ -14,8 +15,9 @@ const NavLink = ({ href, icon, label, active, navigate }) => (
   </a>
 );
 
-export default function Header({ user, activePage }) {
+export default function Header({ activePage }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <nav className="bg-nav-bg text-white shadow-md sticky top-0 z-50 shrink-0">
@@ -75,9 +77,16 @@ export default function Header({ user, activePage }) {
           <div className="flex items-center gap-2 bg-white/15 px-3 py-1 rounded-md cursor-pointer hover:bg-white/25 transition-all">
             <span className="material-symbols-outlined text-[18px]">account_circle</span>
             <span className="text-[11px] font-semibold whitespace-nowrap">
-              Chào, {user.name}
+              Chào, {user?.name ?? "Người dùng"}
             </span>
           </div>
+          <button
+            onClick={() => { logout(); navigate("/login"); }}
+            className="flex items-center gap-1 px-3 py-1 rounded-md text-[11px] font-bold hover:bg-white/10 transition-colors"
+            title="Đăng xuất"
+          >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
+          </button>
         </div>
       </div>
     </nav>

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import HomePage from "./pages/HomePage";
 import NhanDoPage from "./pages/NhanDoPage";
@@ -9,6 +10,7 @@ import BaoCaoDoanhThuPage from "./pages/BaoCaoDoanhThuPage";
 
 function App() {
   return (
+    <AuthProvider>
     <Router>
       <Routes>
         <Route path="/" element={<LoginPage />} />
@@ -21,6 +23,7 @@ function App() {
         <Route path="/bao-cao-doanh-thu" element={<BaoCaoDoanhThuPage />} />
       </Routes>
     </Router>
+    </AuthProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 
@@ -50,26 +51,20 @@ const FeatureCard = ({ icon, title, description, isLogout = false }) => {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: "Người dùng", store: "" });
+  const { user, logout } = useAuth();
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      setUser(JSON.parse(stored));
-    } else {
-      // Chưa đăng nhập → quay về login
-      navigate("/login");
-    }
-  }, [navigate]);
+    if (!user) navigate("/login");
+  }, [user, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("user");
+    logout();
     navigate("/login");
   };
 
   return (
     <>
-      <Header user={user} activePage="home" />
+      <Header activePage="home" />
 
       {/* Main content */}
       <main className="max-w-[1200px] mx-auto px-4 py-6 space-y-6">
