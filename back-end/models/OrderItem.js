@@ -17,6 +17,9 @@ const orderItemSchema = new mongoose.Schema(
     quantity: { type: Number, required: true },
     price: { type: Number, required: true },
     subtotal: { type: Number, required: true },
+    
+    // Ghi chú tình trạng đồ (Ví dụ: "Áo sơ mi bị sờn cổ", "Quần bò lem màu nhẹ")
+    note: { type: String }, 
   },
   { timestamps: true }
 );
