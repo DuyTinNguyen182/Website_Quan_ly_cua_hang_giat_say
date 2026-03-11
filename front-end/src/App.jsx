@@ -4,6 +4,8 @@ import HomePage from "./pages/HomePage";
 import NhanDoPage from "./pages/NhanDoPage";
 import DanhSachDoPage from "./pages/DanhSachDoPage";
 import ThuChiPage from "./pages/ThuChiPage";
+import KetQuaKinhDoanhPage from "./pages/KetQuaKinhDoanhPage";
+import BaoCaoDoanhThuPage from "./pages/BaoCaoDoanhThuPage";
 
 function App() {
   return (
@@ -15,6 +17,8 @@ function App() {
         <Route path="/nhan-do" element={<NhanDoPage />} />
         <Route path="/danh-sach-do" element={<DanhSachDoPage />} />
         <Route path="/thu-chi" element={<ThuChiPage />} />
+        <Route path="/ket-qua-kinh-doanh" element={<KetQuaKinhDoanhPage />} />
+        <Route path="/bao-cao-doanh-thu" element={<BaoCaoDoanhThuPage />} />
       </Routes>
     </Router>
   );
