@@ -22,7 +22,7 @@ const authenticate = (req, res, next) => {
 };
 
 const isAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== "Admin") {
+  if (!req.user || req.user.role !== "ADMIN") {
     return res
       .status(403)
       .json({ message: "Forbidden - Admin access required" });
