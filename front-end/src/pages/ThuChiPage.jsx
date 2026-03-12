@@ -11,7 +11,8 @@ import {
   Printer,
   Clock,
   Plus,
-  Download,
+  Pencil,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -38,7 +39,6 @@ export default function ThuChiPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isEditMode, setIsEditMode] = useState(false);
   // modal state for creating new transaction
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: new Date().toISOString().slice(0, 10) });
@@ -147,24 +147,9 @@ export default function ThuChiPage() {
 
         {/* Right: controls */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500">SỬA</span>
-            <button
-              onClick={() => setIsEditMode(!isEditMode)}
-              className={`w-10 h-5 rounded-full relative p-0.5 transition-colors ${isEditMode ? "bg-nav-bg" : "bg-slate-300"}`}
-            >
-              <div
-                className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${isEditMode ? "translate-x-5" : "translate-x-0"}`}
-              />
-            </button>
-          </div>
-          <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
+          <button className="flex items-center gap-1.5 text-slate-600 hover:text-slate-800 border border-slate-300 rounded-full px-3 py-1 transition-colors">
             <Filter className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">Lọc</span>
-          </button>
-          <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
-            <Download className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">Xuất</span>
+            <span className="text-xs font-bold uppercase">LỌC</span>
           </button>
         </div>
       </div>
@@ -192,95 +177,74 @@ export default function ThuChiPage() {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr>
-                    <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200 w-24 text-center">
-                      In phiếu
-                    </th>
-                    <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200">
-                      Thông tin phiếu
-                    </th>
-                    <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200">
-                      Ghi chú
-                    </th>
-                    <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200">
-                      Nhân viên lập
-                    </th>
-                    <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200 text-right">
-                      Số tiền
-                    </th>
-                    {isEditMode && (
-                      <th className="text-[11px] font-bold text-gray-500 uppercase py-3 px-6 border-b border-gray-200 text-center">
-                        Xóa
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan={6} className="py-12 text-center text-slate-400 italic">Đang tải...</td></tr>
-                  ) : filtered.length > 0 ? (
-                    filtered.map((r) => (
-                      <tr key={r._id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-4 px-6 border-b border-gray-100 align-top text-center">
-                          <Printer
-                            size={20}
-                            className="text-gray-600 cursor-pointer hover:text-nav-bg mx-auto"
-                          />
-                        </td>
-                        <td className="py-4 px-6 border-b border-gray-100 align-top">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-bold text-gray-800 text-[14px]">
-                              {r.category}
-                            </span>
-                            <span
-                              className={`text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                                r.type === "INCOME" ? "bg-accent-green" : "bg-orange-500"
-                              }`}
-                            >
-                              {r.type === "INCOME" ? "THU" : "CHI"}
-                            </span>
-                          </div>
-                          <div className="text-[12px] text-gray-500">
-                            Ngày: <span className="font-semibold text-gray-700">{formatDate(r.transaction_date)}</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 border-b border-gray-100 align-top">
-                          <div className="text-[13px] text-gray-600">{r.description || "—"}</div>
-                        </td>
-                        <td className="py-4 px-6 border-b border-gray-100 align-top">
-                          <div className="font-bold text-gray-800 text-[14px] mb-1 uppercase">
-                            {r.created_by?.full_name ?? "—"}
-                          </div>
-                          <div className="text-[11px] text-gray-500 flex items-center gap-1">
-                            <Clock size={14} />
-                            {formatDate(r.created_at)}
-                          </div>
-                        </td>
-                        <td className="py-4 px-6 border-b border-gray-100 align-top text-right">
-                          <span className="font-bold text-gray-900 text-[16px]">
-                            {formatCurrency(r.amount)}
-                          </span>
-                        </td>
-                        {isEditMode && (
-                          <td className="py-4 px-6 border-b border-gray-100 align-top text-center">
-                            <button onClick={() => handleDelete(r._id)} className="text-red-400 hover:text-red-600 text-xs font-bold">Xóa</button>
-                          </td>
-                        )}
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={6} className="py-12 text-center text-slate-400 italic">
-                        Không tìm thấy phiếu nào
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            {/* Grid table */}
+            <div>
+              {/* Header */}
+              <div className="grid grid-cols-12 bg-slate-50 border-b border-gray-200 px-4 py-2.5 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                <div className="col-span-1 text-center">In phiếu</div>
+                <div className="col-span-3">Thông tin phiếu</div>
+                <div className="col-span-3">Hình thức</div>
+                <div className="col-span-3">Nhân viên lập</div>
+                <div className="col-span-1 text-center">Số tiền</div>
+                <div className="col-span-1 text-right">Tác vụ</div>
+              </div>
+
+              {/* Rows */}
+              {loading ? (
+                <div className="py-12 text-center text-slate-400 italic">Đang tải...</div>
+              ) : filtered.length > 0 ? (
+                filtered.map((r) => (
+                  <div key={r._id} className="grid grid-cols-12 px-4 py-3.5 border-b border-gray-100 hover:bg-gray-50 transition-colors items-center text-sm">
+                    <div className="col-span-1 flex justify-center">
+                      <Printer size={18} className="text-gray-500 cursor-pointer hover:text-nav-bg" />
+                    </div>
+                    <div className="col-span-3 space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-gray-800">{r.category}</span>
+                        <span className={`text-white text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${r.type === "INCOME" ? "bg-accent-green" : "bg-orange-500"}`}>
+                          {r.type === "INCOME" ? "Thu" : "Chi"}
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-500">
+                        Mã phiếu: <span className="font-semibold text-gray-700">{r.transaction_code ?? r._id?.slice(-6).toUpperCase()}</span>
+                      </div>
+                    </div>
+                    <div className="col-span-3 space-y-0.5">
+                      <div className="text-[13px] text-gray-700 font-medium">
+                        {r.payment_method === "BANK" ? "Chuyển khoản" : "Tiền mặt"}
+                      </div>
+                      {r.recipient_name && (
+                        <div className="text-[11px] text-gray-500">
+                          Người nhận: <span className="font-semibold text-gray-700 uppercase">{r.recipient_name}</span>
+                        </div>
+                      )}
+                      {r.description && (
+                        <div className="text-[11px] text-gray-400 truncate">{r.description}</div>
+                      )}
+                    </div>
+                    <div className="col-span-3 space-y-0.5">
+                      <div className="font-bold text-gray-800 text-[13px] uppercase">{r.created_by?.full_name ?? "—"}</div>
+                      <div className="text-[11px] text-gray-500 flex items-center gap-1">
+                        <Clock size={12} />
+                        {formatDate(r.created_at)}
+                      </div>
+                    </div>
+                    <div className="col-span-1 text-center">
+                      <span className="font-bold text-gray-900 text-[15px]">{formatCurrency(r.amount)}</span>
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end gap-3">
+                      <button className="flex items-center gap-1 text-xs font-semibold text-sky-500 hover:text-sky-700 transition-colors" title="Sửa">
+                        <Pencil className="w-3.5 h-3.5" />Sửa
+                      </button>
+                      <button onClick={() => handleDelete(r._id)} className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-600 transition-colors" title="Xóa">
+                        <Trash2 className="w-3.5 h-3.5" />Xóa
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center text-slate-400 italic">Không tìm thấy phiếu nào</div>
+              )}
             </div>
           </div>
         </div>

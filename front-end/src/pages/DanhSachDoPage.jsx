@@ -12,16 +12,17 @@ import {
   Plus,
   Pencil,
   Trash2,
+  Printer,
 } from "lucide-react";
 
 const statusTabs = [
-  { label: "Tất cả", value: null },
-  { label: "Chờ bổ sung đồ", value: "PENDING_ITEMS" },
-  { label: "Đã đủ đồ", value: "ITEMS_READY" },
-  { label: "Đang giặt", value: "WASHING" },
-  { label: "Giặt xong", value: "READY" },
-  { label: "Giao khách", value: "COMPLETED" },
-  { label: "Đã hủy", value: "CANCELLED" },
+  { label: "Tất cả", value: null, active: "bg-nav-bg text-white", inactive: "text-nav-bg border border-nav-bg/40 hover:bg-nav-bg/10" },
+  { label: "Chờ bổ sung đồ", value: "PENDING_ITEMS", active: "bg-amber-500 text-white", inactive: "text-amber-600 border border-amber-300 hover:bg-amber-50" },
+  { label: "Đã đủ đồ", value: "ITEMS_READY", active: "bg-teal-500 text-white", inactive: "text-teal-600 border border-teal-300 hover:bg-teal-50" },
+  { label: "Đang giặt", value: "WASHING", active: "bg-blue-500 text-white", inactive: "text-blue-600 border border-blue-300 hover:bg-blue-50" },
+  { label: "Giặt xong", value: "READY", active: "bg-emerald-500 text-white", inactive: "text-emerald-600 border border-emerald-300 hover:bg-emerald-50" },
+  { label: "Giao khách", value: "COMPLETED", active: "bg-sky-500 text-white", inactive: "text-sky-600 border border-sky-300 hover:bg-sky-50" },
+  { label: "Đã hủy", value: "CANCELLED", active: "bg-red-500 text-white", inactive: "text-red-500 border border-red-300 hover:bg-red-50" },
 ];
 
 const STATUS_LABEL = {
@@ -122,7 +123,7 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
         )}
       </div>
 
-      <div className="col-span-3 space-y-1 self-start">
+      <div className="col-span-2 space-y-1 self-start">
         <div className="font-bold text-slate-700 uppercase">
           {ticket.created_by?.full_name ?? "—"}
         </div>
@@ -135,15 +136,22 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
         </div>
       </div>
 
-      <div className="col-span-1 text-right">
+      <div className="col-span-1 text-center">
         <span className="font-bold text-nav-bg text-[15px]">
           {formatCurrency(ticket.total_amount)}
         </span>
       </div>
 
-      <div className="col-span-2 flex items-center justify-end gap-3">
+      <div className="col-span-3 flex items-center justify-end gap-2">
         <button
-          className="flex items-center gap-1 text-xs font-semibold text-sky-500 hover:text-sky-700 transition-colors"
+          className="flex items-center gap-1.5 text-[11px] font-bold text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 hover:border-violet-400 px-2.5 py-1.5 rounded-full transition-all"
+          title="In hóa đơn"
+        >
+          <Printer className="w-3.5 h-3.5" />
+          In
+        </button>
+        <button
+          className="flex items-center gap-1.5 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-200 hover:bg-sky-100 hover:border-sky-400 px-2.5 py-1.5 rounded-full transition-all"
           title="Sửa"
         >
           <Pencil className="w-3.5 h-3.5" />
@@ -151,7 +159,7 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
         </button>
         <button
           onClick={() => onDelete(ticket._id)}
-          className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-600 transition-colors"
+          className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all"
           title="Xóa"
         >
           <Trash2 className="w-3.5 h-3.5" />
@@ -235,10 +243,10 @@ export default function DanhSachDoPage() {
               <button
                 key={tab.label}
                 onClick={() => setActiveTab(tab.value)}
-                className={`px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
+                className={`px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
                   activeTab === tab.value
-                    ? "bg-slate-700 text-white"
-                    : "text-slate-600 hover:bg-slate-100"
+                    ? tab.active
+                    : tab.inactive
                 }`}
               >
                 {tab.label}
@@ -269,9 +277,9 @@ export default function DanhSachDoPage() {
           <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-500 uppercase tracking-wider">
             <div className="col-span-3">Thông tin phiếu</div>
             <div className="col-span-3">Khách hàng</div>
-            <div className="col-span-3">Nhân viên lập</div>
-            <div className="col-span-1 text-right">Tổng tiền</div>
-            <div className="col-span-2 text-right">Tác vụ</div>
+            <div className="col-span-2">Nhân viên lập</div>
+            <div className="col-span-1 text-center">Tổng tiền</div>
+            <div className="col-span-3 text-right">Tác vụ</div>
           </div>
 
           {loading ? (

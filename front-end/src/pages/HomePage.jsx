@@ -99,6 +99,7 @@ export default function HomePage() {
         {/* Feature cards */}
         <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-slate-100 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Hàng 1 */}
             <FeatureCard
               icon="menu_book"
               title="Sổ Quỹ Cửa Hàng"
@@ -114,15 +115,11 @@ export default function HomePage() {
               title="Khách Hàng"
               description="Danh sách khách hàng"
             />
+            {/* Hàng 2 */}
             <FeatureCard
               icon="payments"
               title="Bảng Giá"
               description="Bảng giá dịch vụ"
-            />
-            <FeatureCard
-              icon="playlist_add_check"
-              title="Trạng Thái"
-              description="Danh sách trạng thái phiếu"
             />
             <FeatureCard
               icon="straighten"
@@ -134,6 +131,7 @@ export default function HomePage() {
               title="Kệ Lưu Đồ"
               description="Danh sách kệ cất đồ"
             />
+            {/* Hàng 3 */}
             <FeatureCard
               icon="account_balance"
               title="Ngân Hàng"
@@ -145,15 +143,11 @@ export default function HomePage() {
               description="Thông tin cửa hàng"
             />
             <FeatureCard
-              icon="card_giftcard"
-              title="Khuyến Mãi"
-              description="Thiết lập tích điểm, khuyến mãi"
-            />
-            <FeatureCard
               icon="print"
               title="Mẫu In"
               description="Thiết kế mẫu in"
             />
+            {/* Hàng 4 */}
             <FeatureCard
               icon="admin_panel_settings"
               title="Phân Quyền"
@@ -163,11 +157,6 @@ export default function HomePage() {
               icon="history_edu"
               title="Nhật Ký"
               description="Quản lý lịch sử thao tác"
-            />
-            <FeatureCard
-              icon="help_outline"
-              title="Hướng Dẫn"
-              description="Hướng dẫn sử dụng"
             />
             <div onClick={handleLogout}>
               <FeatureCard

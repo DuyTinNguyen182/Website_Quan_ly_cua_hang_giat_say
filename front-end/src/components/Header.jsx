@@ -104,10 +104,6 @@ export default function Header({ activePage }) {
                   <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
                   Phân quyền nhân viên
                 </button>
-                <button onClick={() => navigate("/mau-hoa-don")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">receipt_long</span>
-                  Thiết kế mẫu hóa đơn
-                </button>
                 <button onClick={() => navigate("/nhat-ky")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">history</span>
                   Nhật ký hệ thống
@@ -120,11 +116,16 @@ export default function Header({ activePage }) {
         {/* User info */}
         <div className="flex items-center gap-3">
           <div className="relative group">
-            <div className="flex items-center gap-2 bg-white/15 px-3 py-1 rounded-md cursor-pointer hover:bg-white/25 transition-all">
-              <span className="material-symbols-outlined text-[18px]">account_circle</span>
-              <span className="text-[11px] font-semibold whitespace-nowrap">
-                Chào, {user?.full_name ?? "Người dùng"}
-              </span>
+            <div className="flex items-center gap-2 bg-white text-nav-bg px-3 py-1.5 rounded-full cursor-pointer hover:bg-blue-50 transition-all shadow-md">
+              <span className="material-symbols-outlined text-[22px]">account_circle</span>
+              <div className="flex flex-col leading-tight">
+                <span className="text-[11px] font-bold whitespace-nowrap">
+                  {user?.role === "ADMIN" ? "Quản trị viên" : "Admin"}
+                </span>
+                <span className="text-[10px] font-normal whitespace-nowrap opacity-70">
+                  {user?.full_name ?? (user?.role === "ADMIN" ? "Admin" : "Staff")}
+                </span>
+              </div>
               <span className="material-symbols-outlined text-[16px]">expand_more</span>
             </div>
             <div className="absolute top-full right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-1 min-w-[210px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
