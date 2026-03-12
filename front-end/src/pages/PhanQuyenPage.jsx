@@ -717,18 +717,20 @@ export default function PhanQuyenPage() {
                 />
               </div>
 
-              {/* Khóa tài khoản */}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={modalForm.locked}
-                  onChange={(e) =>
-                    setModalForm((p) => ({ ...p, locked: e.target.checked }))
-                  }
-                  className="w-4 h-4 accent-accent-blue cursor-pointer"
-                />
-                <span className="text-sm text-gray-600">Khóa tài khoản này?</span>
-              </label>
+              {/* Khóa tài khoản – chỉ hiển thị với tài khoản nhân viên */}
+              {(modalMode === "add" || editingStaff?.role !== "ADMIN") && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={modalForm.locked}
+                    onChange={(e) =>
+                      setModalForm((p) => ({ ...p, locked: e.target.checked }))
+                    }
+                    className="w-4 h-4 accent-accent-blue cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600">Khóa tài khoản này?</span>
+                </label>
+              )}
             </div>
 
             {/* Thông báo lỗi */}

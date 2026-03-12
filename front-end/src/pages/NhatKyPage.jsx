@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
-import { getActivityLogs, seedDemoLogs, clearActivityLogs } from "../utils/activityLog";
+import { getActivityLogs, seedDemoLogs } from "../utils/activityLog";
 
 // ─── Màu badge theo hành động ────────────────────────────
 const ACTION_STYLE = {
@@ -45,7 +45,6 @@ export default function NhatKyPage() {
   const { user } = useAuth();
   const [logs, setLogs] = useState([]);
   const [search, setSearch] = useState("");
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   // Auth guard
   useEffect(() => {
@@ -71,12 +70,6 @@ export default function NhatKyPage() {
     );
   }, [logs, search]);
 
-  const handleClear = () => {
-    clearActivityLogs();
-    setLogs([]);
-    setShowClearConfirm(false);
-  };
-
   return (
     <div className="min-h-screen bg-main-bg flex flex-col">
       <Header />
@@ -91,15 +84,7 @@ export default function NhatKyPage() {
           NHẬT KÝ
         </button>
 
-        {logs.length > 0 && (
-          <button
-            onClick={() => setShowClearConfirm(true)}
-            className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-600 transition-colors border border-red-200 rounded-full px-3 py-1"
-          >
-            <span className="material-symbols-outlined text-sm leading-none">delete_sweep</span>
-            Xóa nhật ký
-          </button>
-        )}
+
       </div>
 
       {/* Vùng nội dung */}
@@ -185,39 +170,7 @@ export default function NhatKyPage() {
         )}
       </div>
 
-      {/* Modal xác nhận xóa */}
-      {showClearConfirm && (
-        <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
-          onClick={(e) => e.target === e.currentTarget && setShowClearConfirm(false)}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-outlined text-red-400 text-3xl">warning</span>
-              <h2 className="text-lg font-semibold text-gray-800">Xóa toàn bộ nhật ký?</h2>
-            </div>
-            <p className="text-sm text-gray-500 mb-8">
-              Hành động này sẽ xóa{" "}
-              <strong className="text-gray-700">{logs.length} bản ghi</strong> nhật ký và không
-              thể hoàn tác.
-            </p>
-            <div className="flex justify-end items-center gap-6">
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                className="text-sm font-semibold text-gray-400 hover:text-gray-600 transition-colors tracking-wide"
-              >
-                HỦY
-              </button>
-              <button
-                onClick={handleClear}
-                className="text-sm font-semibold text-red-500 hover:text-red-600 transition-colors tracking-wide"
-              >
-                XÓA TẤT CẢ
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
     </div>
   );
 }

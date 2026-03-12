@@ -6,8 +6,6 @@ import axiosInstance from "../api/axiosInstance";
 import {
   PlusCircle,
   ChevronDown,
-  Calendar,
-  Clock,
   UserPlus,
   MessageSquare,
   Printer,
@@ -22,15 +20,6 @@ import {
 
 const formatMoney = (n) =>
   n.toLocaleString("vi-VN");
-
-const today = () => {
-  const d = new Date();
-  const pad = (v) => String(v).padStart(2, "0");
-  return {
-    date: `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${String(d.getFullYear()).slice(2)}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
-  };
-};
 
 export default function NhanDoPage() {
   const navigate = useNavigate();
@@ -51,8 +40,6 @@ export default function NhanDoPage() {
   const [isDiscountPercent, setIsDiscountPercent] = useState(true);
   const [isPrepaid, setIsPrepaid] = useState(false);
   const [note, setNote] = useState("");
-  const [appointmentDate] = useState(today().date);
-  const [appointmentTime] = useState(today().time);
   const [selectedShelf, setSelectedShelf] = useState(null);
   const [shelfModalOpen, setShelfModalOpen] = useState(false);
   const [shelfSearch, setShelfSearch] = useState("");
@@ -132,12 +119,6 @@ export default function NhanDoPage() {
     navigate("/login");
   };
 
-  /* --- build expected_return_date from appointmentDate/Time state --- */
-  const buildReturnDate = () => {
-    const [dd, mm, yy] = appointmentDate.split("/");
-    return new Date(`20${yy}-${mm}-${dd}T${appointmentTime}:00`).toISOString();
-  };
-
   /* --- reset form --- */
   const resetForm = () => {
     setSelectedItems([]);
@@ -162,7 +143,6 @@ export default function NhanDoPage() {
         customer_id: selectedCustomer._id,
         payment_method: "CASH",
         payment_status: isPrepaid ? "PAID" : "UNPAID",
-        expected_return_date: buildReturnDate(),
         note,
         shelf_id: shelfObj?._id ?? undefined,
         created_by: user.id,
@@ -293,8 +273,19 @@ export default function NhanDoPage() {
           </div>
 
           {/* Service Grid */}
-          <div className="h-[35%] overflow-y-auto custom-scrollbar pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+          <div className="flex flex-col h-[38%] bg-white border border-blue-200 rounded-lg shadow-sm overflow-hidden">
+            {/* Tiêu đề */}
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-blue-100 bg-blue-50 shrink-0">
+              <PlusCircle size={15} className="text-accent-blue shrink-0" />
+              <span className="text-xs font-bold text-accent-blue uppercase tracking-wide">
+                Hãy chọn dịch vụ
+              </span>
+              <span className="ml-auto text-[11px] text-gray-400">
+                {filteredServices.length} dịch vụ
+              </span>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {filteredServices.map((svc) => (
                 <div
                   key={svc.id}
@@ -325,12 +316,13 @@ export default function NhanDoPage() {
                 </div>
               ))}
             </div>
+            </div>
           </div>
         </div>
 
         {/* === Right Panel === */}
         <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
-          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-5">
+          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
             {/* Customer search */}
             <div className="relative flex items-center border-b border-gray-200 pb-2">
               <input
@@ -368,33 +360,8 @@ export default function NhanDoPage() {
               )}
             </div>
 
-            {/* Order info */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Trạng thái</span>
-                <div className="flex items-center gap-1 font-bold text-gray-800 cursor-pointer">
-                  Đơn mới
-                  <ChevronDown size={16} className="text-gray-400" />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">Ngày hẹn</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 border-b border-gray-300 pb-0.5 font-bold">
-                    {appointmentDate}
-                    <Calendar size={14} className="text-gray-400" />
-                  </div>
-                  <div className="flex items-center gap-1 border-b border-gray-300 pb-0.5 font-bold">
-                    {appointmentTime}
-                    <Clock size={14} className="text-gray-400" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Pricing */}
-            <div className="space-y-4 pt-2 border-t border-gray-50">
+            <div className="space-y-3 pt-1 border-t border-gray-100">
               {/* Tổng tiền */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-500">Tổng tiền</span>
@@ -449,7 +416,7 @@ export default function NhanDoPage() {
               </div>
 
               {/* Thành tiền */}
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex items-center justify-between pt-1">
                 <span className="text-sm font-bold text-gray-800">Thành tiền</span>
                 <div className="flex items-center border-b border-gray-200 w-36 pb-0.5">
                   <span className="w-full text-right font-black text-accent-blue text-lg">
@@ -461,7 +428,7 @@ export default function NhanDoPage() {
             </div>
 
             {/* Notes & options */}
-            <div className="space-y-4 pt-2">
+            <div className="space-y-3 pt-1">
               <div className="flex items-start gap-2 border-b border-gray-200 pb-2">
                 <MessageSquare size={18} className="text-gray-400 mt-0.5" />
                 <input
@@ -518,17 +485,17 @@ export default function NhanDoPage() {
           {/* Bottom actions */}
           <div className="p-3 bg-gray-50 border-t border-gray-100 flex gap-2 shrink-0">
             <button
-              disabled={selectedItems.length === 0 || submitting}
+              disabled={submitting}
               onClick={() => handleSave(true)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity ${selectedItems.length > 0 && !submitting ? "bg-accent-blue text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"}`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity bg-accent-blue text-white hover:opacity-90 disabled:opacity-60"
             >
               <Printer size={18} />
-              Lưu & In
+              In phiếu nhận
             </button>
             <button
-              disabled={selectedItems.length === 0 || submitting}
+              disabled={submitting}
               onClick={() => handleSave(false)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity ${selectedItems.length > 0 && !submitting ? "bg-accent-green text-white hover:opacity-90" : "bg-gray-300 text-gray-500 cursor-not-allowed opacity-70"}`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity bg-accent-green text-white hover:opacity-90 disabled:opacity-60"
             >
               <Save size={18} />
               {submitting ? "Đang lưu..." : "Lưu Phiếu"}

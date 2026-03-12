@@ -46,7 +46,7 @@ const createOrder = async ({
     order_code,
     customer_id,
     total_amount: 0,
-    status: "RECEIVED",
+    status: "PENDING_ITEMS",
     payment_status: "UNPAID",
     payment_method,
     expected_return_date,

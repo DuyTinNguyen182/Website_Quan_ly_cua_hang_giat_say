@@ -17,7 +17,8 @@ import {
 
 const statusTabs = [
   { label: "Tất cả", value: null },
-  { label: "Đơn mới", value: "RECEIVED" },
+  { label: "Chờ bổ sung đồ", value: "PENDING_ITEMS" },
+  { label: "Đã đủ đồ", value: "ITEMS_READY" },
   { label: "Đang giặt", value: "WASHING" },
   { label: "Giặt xong", value: "READY" },
   { label: "Giao khách", value: "COMPLETED" },
@@ -25,7 +26,9 @@ const statusTabs = [
 ];
 
 const STATUS_LABEL = {
-  RECEIVED: "ĐƠN MỚI",
+  RECEIVED: "ĐỞ N MỚI",
+  PENDING_ITEMS: "CHỜC BỔ SUNG ĐỒ",
+  ITEMS_READY: "ĐÃ ĐỦ ĐỒ",
   WASHING: "ĐANG GIẶT",
   READY: "GIẶT XONG",
   COMPLETED: "GIAO KHÁCH",
@@ -34,6 +37,8 @@ const STATUS_LABEL = {
 
 const statusColors = {
   RECEIVED: "bg-orange-500",
+  PENDING_ITEMS: "bg-yellow-500",
+  ITEMS_READY: "bg-teal-500",
   WASHING: "bg-nav-bg",
   READY: "bg-accent-green",
   COMPLETED: "bg-sky-500",
@@ -46,9 +51,16 @@ const formatCurrency = (amount) =>
 /* ─── Ticket row ─── */
 const TicketItem = ({ ticket, onStatusChange }) => {
   const nextStatus = {
-    RECEIVED: "WASHING",
+    PENDING_ITEMS: "ITEMS_READY",
+    ITEMS_READY: "WASHING",
     WASHING: "READY",
     READY: "COMPLETED",
+  };
+  const nextLabel = {
+    PENDING_ITEMS: "Đã đủ đồ",
+    ITEMS_READY: "Bắt đầu giặt",
+    WASHING: "Giặt xong",
+    READY: "Giao khách",
   };
   const canAdvance = nextStatus[ticket.status];
 
@@ -73,7 +85,7 @@ const TicketItem = ({ ticket, onStatusChange }) => {
             onClick={() => onStatusChange(ticket._id, nextStatus[ticket.status])}
             className="text-nav-bg font-bold text-xs uppercase cursor-pointer hover:underline"
           >
-            Chuyển trạng thái
+            {nextLabel[ticket.status]}
           </button>
         )}
         <div className="text-sm font-medium">
