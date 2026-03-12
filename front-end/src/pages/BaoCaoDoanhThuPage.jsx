@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
-import { ChevronLeft, Filter, Download } from "lucide-react";
+import { ChevronLeft, Download } from "lucide-react";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 
@@ -43,6 +43,140 @@ const BarChart = ({ data }) => {
 const buildEmptyMonths = (year) =>
   Array.from({ length: 12 }, (_, i) => ({ month: i + 1, year, revenue: 0, expense: 0 }));
 
+const TIME_MODES = [
+  { value: "today",  label: "Hôm nay",   active: "bg-violet-600 text-white border-violet-600",  inactive: "text-violet-600 border-violet-300 bg-violet-50 hover:bg-violet-100" },
+  { value: "week",   label: "Tuần này",  active: "bg-sky-500 text-white border-sky-500",       inactive: "text-sky-600 border-sky-300 bg-sky-50 hover:bg-sky-100" },
+  { value: "month",  label: "Tháng này", active: "bg-teal-500 text-white border-teal-500",     inactive: "text-teal-600 border-teal-300 bg-teal-50 hover:bg-teal-100" },
+  { value: "year",   label: "Năm này",   active: "bg-amber-500 text-white border-amber-500",   inactive: "text-amber-600 border-amber-300 bg-amber-50 hover:bg-amber-100" },
+  { value: "custom", label: "Tùy chọn",  active: "bg-rose-500 text-white border-rose-500",     inactive: "text-rose-600 border-rose-300 bg-rose-50 hover:bg-rose-100" },
+];
+
+const getDateRange = (mode, customFrom, customTo) => {
+  const now = new Date();
+  if (mode === "today") {
+    const s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const e = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    return { from: s.toISOString(), to: e.toISOString() };
+  }
+  if (mode === "week") {
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const s = new Date(now); s.setDate(now.getDate() + diff); s.setHours(0, 0, 0, 0);
+    const e = new Date(s); e.setDate(s.getDate() + 6); e.setHours(23, 59, 59, 999);
+    return { from: s.toISOString(), to: e.toISOString() };
+  }
+  if (mode === "month") {
+    const s = new Date(now.getFullYear(), now.getMonth(), 1);
+    const e = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    return { from: s.toISOString(), to: e.toISOString() };
+  }
+  if (mode === "year") {
+    const s = new Date(now.getFullYear(), 0, 1);
+    const e = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+    return { from: s.toISOString(), to: e.toISOString() };
+  }
+  // custom
+  const s = customFrom ? new Date(customFrom + "T00:00:00") : new Date(now.getFullYear(), 0, 1);
+  const e = customTo ? new Date(customTo + "T23:59:59") : new Date();
+  return { from: s.toISOString(), to: e.toISOString() };
+};
+
+const PIE_COLORS = {
+  RECEIVED: "#f97316",
+  PENDING_ITEMS: "#f59e0b",
+  ITEMS_READY: "#14b8a6",
+  WASHING: "#6366f1",
+  READY: "#10b981",
+  COMPLETED: "#0ea5e9",
+  CANCELLED: "#ef4444",
+};
+const STATUS_LABELS = {
+  RECEIVED: "Đơn mới",
+  PENDING_ITEMS: "Chờ bổ sung đồ",
+  ITEMS_READY: "Đã đủ đồ",
+  WASHING: "Đang giặt",
+  READY: "Giặt xong",
+  COMPLETED: "Giao khách",
+  CANCELLED: "Đã hủy",
+};
+const ALL_STATUSES = ["RECEIVED", "PENDING_ITEMS", "ITEMS_READY", "WASHING", "READY", "COMPLETED", "CANCELLED"];
+
+const polarToCart = (cx, cy, r, deg) => ({
+  x: cx + r * Math.cos(((deg - 90) * Math.PI) / 180),
+  y: cy + r * Math.sin(((deg - 90) * Math.PI) / 180),
+});
+
+const PieChart = ({ data }) => {
+  const total = data.reduce((s, d) => s + d.count, 0);
+  if (total === 0)
+    return <div className="h-44 flex items-center justify-center text-gray-400 italic text-sm">Không có dữ liệu</div>;
+
+  const cx = 90, cy = 90, r = 82;
+  let cumDeg = 0;
+  const slices = data
+    .filter((d) => d.count > 0)
+    .map((d) => {
+      const deg = (d.count / total) * 360;
+      const start = cumDeg;
+      cumDeg += deg;
+      if (deg >= 359.99) return { ...d, isCircle: true };
+      const s = polarToCart(cx, cy, r, start);
+      const e = polarToCart(cx, cy, r, cumDeg);
+      const large = deg > 180 ? 1 : 0;
+      const path = `M ${cx} ${cy} L ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${e.x.toFixed(2)} ${e.y.toFixed(2)} Z`;
+      return { ...d, path };
+    });
+
+  return (
+    <div className="flex items-center gap-6 flex-wrap">
+      <svg width="180" height="180" viewBox="0 0 180 180" className="flex-shrink-0">
+        {slices.map((s, i) =>
+          s.isCircle ? (
+            <circle key={i} cx={cx} cy={cy} r={r} fill={PIE_COLORS[s.status] || "#94a3b8"} />
+          ) : (
+            <path key={i} d={s.path} fill={PIE_COLORS[s.status] || "#94a3b8"} stroke="white" strokeWidth="2" />
+          )
+        )}
+      </svg>
+      <div className="space-y-2">
+        {data
+          .filter((d) => d.count > 0)
+          .map((d, i) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[d.status] || "#94a3b8" }} />
+              <span className="text-gray-700 font-medium">
+                {STATUS_LABELS[d.status] ?? d.status}{" "}
+                <span className="text-gray-400 font-normal">({d.count})</span>
+              </span>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
+
+const HorizontalBarChart = ({ data }) => {
+  const maxVal = Math.max(...data.map((d) => d.count), 1);
+  if (data.length === 0)
+    return <div className="text-center text-gray-400 italic text-sm py-8">Không có dữ liệu</div>;
+  return (
+    <div className="space-y-2.5">
+      {data.map((d, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <div className="w-44 text-[11px] text-gray-600 text-right truncate flex-shrink-0 pr-1">{d.name}</div>
+          <div className="flex-1 bg-gray-100 rounded-full h-5 overflow-hidden">
+            <div
+              className="h-full bg-sky-400 rounded-full transition-all duration-500"
+              style={{ width: `${(d.count / maxVal) * 100}%` }}
+            />
+          </div>
+          <div className="w-10 text-[11px] font-bold text-gray-700 flex-shrink-0">{d.count.toLocaleString("vi-VN")}</div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function BaoCaoDoanhThuPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -51,36 +185,83 @@ export default function BaoCaoDoanhThuPage() {
     if (!user) navigate("/login");
   }, [user, navigate]);
 
-  const currentYear = new Date().getFullYear();
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [monthlyData, setMonthlyData] = useState(buildEmptyMonths(currentYear));
+  const [timeMode, setTimeMode] = useState("month");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [monthlyData, setMonthlyData] = useState(buildEmptyMonths(new Date().getFullYear()));
   const [loading, setLoading] = useState(true);
+  const [orderStatusData, setOrderStatusData] = useState([]);
+  const [topServices, setTopServices] = useState([]);
+  const [summaryStats, setSummaryStats] = useState({
+    totalOrders: 0, totalAmount: 0,
+    paidOrders: 0, paidAmount: 0,
+    unpaidActiveOrders: 0, unpaidActiveAmount: 0,
+    debtOrders: 0, debtAmount: 0,
+  });
+
+  const dateRange = useMemo(() => getDateRange(timeMode, customFrom, customTo), [timeMode, customFrom, customTo]);
 
   useEffect(() => {
     if (!user) return;
+    if (timeMode === "custom" && (!customFrom || !customTo)) return;
     setLoading(true);
-    const from = new Date(selectedYear, 0, 1).toISOString();
-    const to = new Date(selectedYear, 11, 31, 23, 59, 59).toISOString();
+    const { from, to } = dateRange;
+    const year = new Date(from).getFullYear();
 
     Promise.all([
       axiosInstance.get(`/transactions?type=INCOME&from=${from}&to=${to}`),
       axiosInstance.get(`/transactions?type=EXPENSE&from=${from}&to=${to}`),
+      axiosInstance.get(`/orders?from=${from}&to=${to}`).catch(() => ({ data: [] })),
+      axiosInstance.get(`/order-items?from=${from}&to=${to}`).catch(() => ({ data: [] })),
     ])
-      .then(([incRes, expRes]) => {
-        const buckets = buildEmptyMonths(selectedYear);
+      .then(([incRes, expRes, ordersRes, itemsRes]) => {
+        // Monthly bar chart buckets
+        const buckets = buildEmptyMonths(year);
         incRes.data.forEach((t) => {
-          const m = new Date(t.transaction_date).getMonth(); // 0-indexed
-          buckets[m].revenue += t.amount;
+          const m = new Date(t.transaction_date || t.created_at).getMonth();
+          if (buckets[m]) buckets[m].revenue += t.amount;
         });
         expRes.data.forEach((t) => {
-          const m = new Date(t.transaction_date).getMonth();
-          buckets[m].expense += t.amount;
+          const m = new Date(t.transaction_date || t.created_at).getMonth();
+          if (buckets[m]) buckets[m].expense += t.amount;
         });
         setMonthlyData(buckets);
+
+        // Order status distribution
+        const orders = ordersRes.data || [];
+        const statusCounts = {};
+        orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
+        setOrderStatusData(ALL_STATUSES.map((s) => ({ status: s, count: statusCounts[s] || 0 })));
+
+        // 4 summary cards
+        const totalOrders = orders.length;
+        const totalAmount = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
+        const paid = orders.filter((o) => o.payment_status === "PAID");
+        const paidOrders = paid.length;
+        const paidAmount = paid.reduce((s, o) => s + (o.total_amount || 0), 0);
+        const unpaidActive = orders.filter((o) => o.payment_status !== "PAID" && o.status !== "CANCELLED" && o.status !== "COMPLETED");
+        const unpaidActiveOrders = unpaidActive.length;
+        const unpaidActiveAmount = unpaidActive.reduce((s, o) => s + (o.total_amount || 0), 0);
+        const debt = orders.filter((o) => o.payment_status !== "PAID" && o.status === "COMPLETED");
+        const debtOrders = debt.length;
+        const debtAmount = debt.reduce((s, o) => s + (o.total_amount || 0), 0);
+        setSummaryStats({ totalOrders, totalAmount, paidOrders, paidAmount, unpaidActiveOrders, unpaidActiveAmount, debtOrders, debtAmount });
+
+        // Top services by quantity
+        const svcCounts = {};
+        (itemsRes.data || []).forEach((item) => {
+          const name = item.service_id?.name ?? "Khác";
+          svcCounts[name] = (svcCounts[name] || 0) + (Number(item.quantity) || 1);
+        });
+        const top = Object.entries(svcCounts)
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+        setTopServices(top);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user, selectedYear]);
+  }, [user, dateRange, timeMode, customFrom, customTo]);
 
   const totalRevenue = monthlyData.reduce((s, d) => s + d.revenue, 0);
   const totalExpense = monthlyData.reduce((s, d) => s + d.expense, 0);
@@ -91,82 +272,88 @@ export default function BaoCaoDoanhThuPage() {
       <Header activePage="bao-cao-doanh-thu" />
 
       {/* ─── Sub-header ─── */}
-      <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-3 flex flex-wrap items-center justify-between gap-4 shrink-0">
+      <div className="bg-indigo-50/60 border-b border-indigo-100 px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 shrink-0">
         <button
           onClick={() => navigate("/home")}
-          className="flex items-center text-nav-bg font-bold text-sm hover:opacity-80 transition-opacity"
+          className="flex items-center text-nav-bg font-bold text-sm hover:opacity-80 transition-opacity whitespace-nowrap"
         >
           <ChevronLeft className="w-5 h-5 mr-0.5" />
           BÁO CÁO DOANH THU
         </button>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-gray-500">NĂM:</span>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-1 bg-white rounded-full text-xs font-bold text-nav-bg shadow-sm border border-gray-100 focus:outline-none"
-          >
-            {[currentYear - 1, currentYear, currentYear + 1].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
+        {/* Time mode selector */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {TIME_MODES.map((m) => (
+            <button
+              key={m.value}
+              onClick={() => setTimeMode(m.value)}
+              className={`px-3.5 py-1 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+                timeMode === m.value ? m.active : m.inactive
+              }`}
+            >
+              {m.label}
+            </button>
+          ))}
+          {timeMode === "custom" && (
+            <div className="flex items-center gap-2 ml-2">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-nav-bg"
+              />
+              <span className="text-xs text-gray-400 font-medium">→</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-nav-bg"
+              />
+            </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-4">
-          <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
-            <Filter className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">Lọc</span>
-          </button>
-          <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
-            <Download className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">Xuất</span>
-          </button>
-        </div>
+        <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
+          <Download className="w-4 h-4" />
+          <span className="text-xs font-bold uppercase">Xuất</span>
+        </button>
       </div>
 
       {/* ─── Main ─── */}
       <main className="flex-1 overflow-y-auto custom-scrollbar py-6 px-4">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Summary cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 flex items-center gap-6">
-              <div className="w-14 h-14 bg-accent-blue rounded-full flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-2xl">trending_up</span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  TỔNG DOANH THU
-                </p>
-                <p className="text-2xl font-bold text-accent-blue">
-                  {loading ? "—" : formatCurrency(totalRevenue)}
-                </p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1 - Purple */}
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#7c3aed,#6d28d9)" }}>
+              <div className="text-xs font-bold uppercase tracking-wide opacity-90">Đơn hàng phát sinh</div>
+              <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.totalAmount)}</div>
+              <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
+                {summaryStats.totalOrders} đơn
               </div>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 flex items-center gap-6">
-              <div className="w-14 h-14 bg-accent-orange rounded-full flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-2xl">trending_down</span>
-              </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  TỔNG CHI PHÍ
-                </p>
-                <p className="text-2xl font-bold text-accent-orange">
-                  {loading ? "—" : formatCurrency(totalExpense)}
-                </p>
+            {/* Card 2 - Green */}
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#16a34a,#15803d)" }}>
+              <div className="text-xs font-bold uppercase tracking-wide opacity-90">Đã thu tiền khách</div>
+              <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.paidAmount)}</div>
+              <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
+                {summaryStats.paidOrders} đơn
               </div>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 flex items-center gap-6">
-              <div className="w-14 h-14 bg-accent-green rounded-full flex items-center justify-center text-white">
-                <span className="material-symbols-outlined text-2xl">savings</span>
+            {/* Card 3 - Orange */}
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#ea580c,#c2410c)" }}>
+              <div className="text-xs font-bold uppercase tracking-wide opacity-90">Chưa thu &amp; Chờ giao</div>
+              <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.unpaidActiveAmount)}</div>
+              <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
+                {summaryStats.unpaidActiveOrders} đơn
               </div>
-              <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  LỢI NHUẬN
-                </p>
-                <p className="text-2xl font-bold text-accent-green">
-                  {loading ? "—" : formatCurrency(totalProfit)}
-                </p>
+            </div>
+            {/* Card 4 - Dark slate */}
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#475569,#334155)" }}>
+              <div className="text-xs font-bold uppercase tracking-wide opacity-90">Khách nợ</div>
+              <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.debtAmount)}</div>
+              <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
+                {summaryStats.debtOrders} đơn
               </div>
             </div>
           </div>
@@ -187,6 +374,18 @@ export default function BaoCaoDoanhThuPage() {
               </div>
             </div>
             <BarChart data={monthlyData} />
+          </div>
+
+          {/* Pie chart + Horizontal bar chart */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-bold text-gray-800 mb-5">Trạng thái đơn</h3>
+              <PieChart data={orderStatusData} />
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <h3 className="font-bold text-gray-800 mb-5">Top dịch vụ</h3>
+              <HorizontalBarChart data={topServices} />
+            </div>
           </div>
 
           {/* Monthly table */}
