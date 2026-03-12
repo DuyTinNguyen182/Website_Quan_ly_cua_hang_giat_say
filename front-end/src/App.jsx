@@ -15,6 +15,7 @@ import BangGiaDichVuPage from "./pages/BangGiaDichVuPage";
 import TaiKhoanNganHangPage from "./pages/TaiKhoanNganHangPage";
 import PhanQuyenPage from "./pages/PhanQuyenPage";
 import NhatKyPage from "./pages/NhatKyPage";
+import DoiMatKhauPage from "./pages/DoiMatKhauPage";
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/tai-khoan-ngan-hang" element={<TaiKhoanNganHangPage />} />
         <Route path="/phan-quyen" element={<PhanQuyenPage />} />
         <Route path="/nhat-ky" element={<NhatKyPage />} />
+        <Route path="/doi-mat-khau" element={<DoiMatKhauPage />} />
       </Routes>
     </Router>
     </AuthProvider>

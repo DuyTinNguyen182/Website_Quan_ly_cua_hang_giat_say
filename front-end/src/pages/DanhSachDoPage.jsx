@@ -45,23 +45,90 @@ const statusColors = {
   CANCELLED: "bg-red-500",
 };
 
+const ALL_STATUSES = [
+  { value: "PENDING_ITEMS", label: "Chờ bổ sung đồ",  color: "bg-yellow-400",  text: "text-yellow-700",  bg: "hover:bg-yellow-50" },
+  { value: "ITEMS_READY",   label: "Đã đủ đồ",        color: "bg-teal-500",    text: "text-teal-700",    bg: "hover:bg-teal-50" },
+  { value: "WASHING",       label: "Đang giặt",        color: "bg-blue-500",    text: "text-blue-700",    bg: "hover:bg-blue-50" },
+  { value: "READY",         label: "Giặt xong",        color: "bg-emerald-500", text: "text-emerald-700", bg: "hover:bg-emerald-50" },
+  { value: "COMPLETED",     label: "Giao khách",       color: "bg-sky-500",     text: "text-sky-700",     bg: "hover:bg-sky-50" },
+  { value: "CANCELLED",     label: "Đã hủy",           color: "bg-red-500",     text: "text-red-600",     bg: "hover:bg-red-50" },
+];
+
 const formatCurrency = (amount) =>
   new Intl.NumberFormat("vi-VN").format(amount);
 
+const StatusModal = ({ ticket, onStatusChange, onClose }) => {
+  const currentStatus = ALL_STATUSES.find((s) => s.value === ticket.status);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl shadow-2xl w-80 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Tiêu đề */}
+        <div className="px-6 pt-5 pb-3 text-center">
+          <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">
+            Chuyển trạng thái
+          </div>
+          <div className="text-[13px] font-bold text-slate-600 truncate">
+            {ticket.order_code} – {ticket.customer_id?.full_name ?? ""}
+          </div>
+        </div>
+
+        {/* Danh sách trạng thái */}
+        <div className="px-4 pb-2 flex flex-col gap-2">
+          {ALL_STATUSES.map((s) => {
+            const isCurrent = ticket.status === s.value;
+            return (
+              <button
+                key={s.value}
+                onClick={() => {
+                  if (!isCurrent) onStatusChange(ticket._id, s.value);
+                  onClose();
+                }}
+                className={`w-full py-3 rounded-2xl text-[15px] font-extrabold uppercase tracking-wide transition-all active:scale-95
+                  ${isCurrent
+                    ? `${s.color} text-white shadow-md`
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
+                  }`}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Kệ lưu đồ */}
+        {ticket.shelf_id?.name && (
+          <div className="mx-4 mb-3 mt-1 border-2 border-dashed border-sky-300 rounded-2xl px-4 py-2.5 text-center">
+            <div className="text-[14px] font-extrabold text-sky-500 uppercase">
+              {ticket.shelf_id.name}
+            </div>
+            <div className="text-[11px] text-slate-400">(Vị trí cất đồ của khách)</div>
+          </div>
+        )}
+
+        {/* Nút đóng */}
+        <div className="px-4 pb-5">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 text-[14px] font-bold text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            ĐÓNG
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
-  const nextStatus = {
-    PENDING_ITEMS: "ITEMS_READY",
-    ITEMS_READY: "WASHING",
-    WASHING: "READY",
-    READY: "COMPLETED",
-  };
-  const nextLabel = {
-    PENDING_ITEMS: "Đã đủ đồ",
-    ITEMS_READY: "Bắt đầu giặt",
-    WASHING: "Giặt xong",
-    READY: "Giao khách",
-  };
-  const canAdvance = nextStatus[ticket.status];
+  const [showStatusModal, setShowStatusModal] = useState(false);
 
   const formatDate = (iso) => {
     if (!iso) return "—";
@@ -75,20 +142,16 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
   };
 
   return (
+    <>
+      {showStatusModal && (
+        <StatusModal
+          ticket={ticket}
+          onStatusChange={onStatusChange}
+          onClose={() => setShowStatusModal(false)}
+        />
+      )}
     <div className="grid grid-cols-12 px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center text-sm">
       <div className="col-span-3 space-y-1 self-start">
-        {canAdvance ? (
-          <button
-            onClick={() => onStatusChange(ticket._id, nextStatus[ticket.status])}
-            className="text-nav-bg font-bold text-xs uppercase tracking-wide hover:underline"
-          >
-            Chuyển trạng thái → {nextLabel[ticket.status]}
-          </button>
-        ) : ticket.status === "COMPLETED" ? (
-          <span className="text-xs text-slate-400 italic">Hoàn thành</span>
-        ) : ticket.status === "CANCELLED" ? (
-          <span className="text-xs text-slate-400 italic">Đã hủy</span>
-        ) : null}
         <div className="text-slate-700">
           Mã phiếu: <span className="font-bold">{ticket.order_code}</span>
         </div>
@@ -107,11 +170,15 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
           <span className="text-nav-bg font-bold uppercase">
             {ticket.customer_id?.full_name ?? "—"}
           </span>
-          <span
-            className={`text-white text-[10px] px-2 py-0.5 rounded-full font-bold ${statusColors[ticket.status] || "bg-slate-500"}`}
+
+          {/* Badge trạng thái – bấm để mở modal đổi trạng thái */}
+          <button
+            onClick={() => setShowStatusModal(true)}
+            className={`text-white text-[10px] px-2.5 py-0.5 rounded-full font-bold cursor-pointer hover:opacity-80 active:scale-95 transition-all select-none ${statusColors[ticket.status] || "bg-slate-500"}`}
+            title="Bấm để đổi trạng thái"
           >
             {STATUS_LABEL[ticket.status] ?? ticket.status}
-          </span>
+          </button>
         </div>
         <div className="text-slate-600">
           Điện thoại: <span className="font-medium">{ticket.customer_id?.phone ?? "—"}</span>
@@ -167,6 +234,7 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
         </button>
       </div>
     </div>
+    </>
   );
 };
 
@@ -279,7 +347,7 @@ export default function DanhSachDoPage() {
             <div className="col-span-3">Khách hàng</div>
             <div className="col-span-2">Nhân viên lập</div>
             <div className="col-span-1 text-center">Tổng tiền</div>
-            <div className="col-span-3 text-right">Tác vụ</div>
+            <div className="col-span-3 text-center">Tác vụ</div>
           </div>
 
           {loading ? (

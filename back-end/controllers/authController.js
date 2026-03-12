@@ -75,11 +75,11 @@ const updateUser = async (req, res) => {
 // PUT /users/:id/password
 const changePassword = async (req, res) => {
   try {
-    const { new_password } = req.body;
-    if (!new_password)
-      return res.status(400).json({ message: "Vui lòng nhập mật khẩu mới" });
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password)
+      return res.status(400).json({ message: "Vui lòng nhập đầy đủ mật khẩu" });
 
-    await authService.changePassword(req.params.id, new_password);
+    await authService.changePassword(req.params.id, current_password, new_password);
     res.json({ message: "Đổi mật khẩu thành công" });
   } catch (err) {
     res.status(400).json({ message: err.message });

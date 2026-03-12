@@ -34,8 +34,12 @@ const updateUser = async (id, { full_name, phone, email, gender, role, is_active
   ).select("-password");
 };
 
-// Đổi mật khẩu
-const changePassword = async (id, newPassword) => {
+// Đổi mật khẩu (có xác minh mật khẩu hiện tại)
+const changePassword = async (id, currentPassword, newPassword) => {
+  const user = await User.findById(id);
+  if (!user) throw new Error("Không tìm thấy người dùng");
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) throw new Error("Mật khẩu hiện tại không đúng");
   const hashed = await bcrypt.hash(newPassword, SALT_ROUNDS);
   return await User.findByIdAndUpdate(id, { password: hashed });
 };

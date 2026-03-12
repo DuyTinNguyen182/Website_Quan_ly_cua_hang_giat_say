@@ -143,20 +143,15 @@ export default function HomePage() {
               description="Thông tin cửa hàng"
             />
             <FeatureCard
-              icon="print"
-              title="Mẫu In"
-              description="Thiết kế mẫu in"
+              icon="history_edu"
+              title="Nhật Ký"
+              description="Quản lý lịch sử thao tác"
             />
             {/* Hàng 4 */}
             <FeatureCard
               icon="admin_panel_settings"
               title="Phân Quyền"
               description="Quản lý & phân quyền nhân viên"
-            />
-            <FeatureCard
-              icon="history_edu"
-              title="Nhật Ký"
-              description="Quản lý lịch sử thao tác"
             />
             <div onClick={handleLogout}>
               <FeatureCard
