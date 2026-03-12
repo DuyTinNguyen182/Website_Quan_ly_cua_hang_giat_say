@@ -16,10 +16,7 @@ const getAllOrders = async ({ status, payment_status, customer_id, search } = {}
   if (customer_id) filter.customer_id = customer_id;
 
   let query = Order.find(filter)
-    .populate("customer_id", "full_name phone")
-    .populate("shelf_id", "name")
-    .populate("created_by", "full_name")
-    .sort({ created_at: -1 });
+    .populate("customer_id", "full_name phone address")
 
   return await query;
 };

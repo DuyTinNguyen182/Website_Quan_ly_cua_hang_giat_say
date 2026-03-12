@@ -490,7 +490,7 @@ export default function NhanDoPage() {
               className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity bg-accent-blue text-white hover:opacity-90 disabled:opacity-60"
             >
               <Printer size={18} />
-              In phiếu nhận
+              In Phiếu
             </button>
             <button
               disabled={submitting}
