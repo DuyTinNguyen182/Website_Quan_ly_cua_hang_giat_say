@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -39,10 +39,10 @@ export default function CuaHangPage() {
   };
 
   return (
-    <div className="min-h-screen bg-main-bg flex flex-col">
+    <div className="min-h-screen bg-mesh flex flex-col">
       <Header activePage="cua-hang" />
 
-      <main className="flex-1 max-w-[900px] mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-[900px] mx-auto w-full px-4 py-6 page-enter">
         {/* Page title */}
         <button
           onClick={() => navigate(-1)}
@@ -115,8 +115,8 @@ export default function CuaHangPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="bg-white animate-scale-in rounded-2xl shadow-2xl w-full max-w-md">
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
               <h2 className="text-sm font-bold text-nav-bg uppercase tracking-wide">
@@ -184,7 +184,7 @@ export default function CuaHangPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="px-5 py-2 text-xs font-bold text-white bg-nav-bg rounded-lg hover:opacity-90 transition-opacity"
+                className="btn-magnetic btn-shimmer px-5 py-2 text-xs font-bold text-white rounded-lg"
               >
                 Lưu thay đổi
               </button>
@@ -195,3 +195,6 @@ export default function CuaHangPage() {
     </div>
   );
 }
+
+
+

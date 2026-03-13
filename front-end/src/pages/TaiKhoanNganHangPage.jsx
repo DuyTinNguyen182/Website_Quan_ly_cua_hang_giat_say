@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -218,7 +218,7 @@ export default function TaiKhoanNganHangPage() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="w-full mt-7 bg-nav-bg text-white py-3 rounded-full font-semibold text-sm hover:opacity-90 transition-opacity disabled:opacity-60"
+              className="btn-magnetic btn-shimmer w-full mt-7 text-white py-3 rounded-full font-semibold text-sm disabled:opacity-60"
             >
               {submitting ? "Đang xử lý..." : view === "add" ? "Thêm mới" : "Cập nhật"}
             </button>
@@ -230,10 +230,10 @@ export default function TaiKhoanNganHangPage() {
 
   // ─── LIST VIEW ─────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-main-bg flex flex-col">
+    <div className="min-h-screen bg-mesh flex flex-col">
       <Header activePage="tai-khoan-ngan-hang" />
 
-      <main className="flex-1 w-full max-w-300 mx-auto px-4 py-6">
+      <main className="flex-1 w-full max-w-300 mx-auto px-4 py-6 page-enter">
 
         {/* Page title */}
         <button
@@ -282,7 +282,7 @@ export default function TaiKhoanNganHangPage() {
               const bank = getBankInfo(account.bank_id);
               return (
                 <div key={account.id}>
-                  <div className="grid grid-cols-[2fr_2fr_100px] px-4 py-4 hover:bg-soft-blue-tint transition-colors items-center">
+                  <div className="grid grid-cols-[2fr_2fr_100px] px-4 py-4 table-row-hover items-center">
 
                     {/* Ngân hàng */}
                     <div className="flex items-center gap-3">
@@ -351,8 +351,8 @@ export default function TaiKhoanNganHangPage() {
 
       {/* Delete confirm dialog */}
       {deleteId && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <div className="bg-white animate-scale-in rounded-2xl shadow-2xl w-full max-w-sm p-6">
             <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
               <span className="material-symbols-outlined text-red-500 text-[24px]">delete</span>
             </div>
@@ -380,3 +380,7 @@ export default function TaiKhoanNganHangPage() {
     </div>
   );
 }
+
+
+
+

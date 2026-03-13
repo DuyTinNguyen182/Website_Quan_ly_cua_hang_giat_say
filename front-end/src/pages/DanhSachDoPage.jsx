@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -150,7 +150,7 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
           onClose={() => setShowStatusModal(false)}
         />
       )}
-    <div className="grid grid-cols-12 px-4 py-3.5 border-b border-slate-100 hover:bg-slate-50 transition-colors items-center text-sm">
+    <div className="grid grid-cols-12 px-4 py-3.5 border-b border-slate-100 table-row-hover transition-all items-center text-sm">
       <div className="col-span-3 space-y-1 self-start">
         <div className="text-slate-700">
           Mã phiếu: <span className="font-bold">{ticket.order_code}</span>
@@ -329,7 +329,7 @@ export default function DanhSachDoPage() {
         </button>
       </div>
 
-      <main className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-3 pb-4">
+      <main className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-3 pb-4 page-enter">
         <div className="mb-3 relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -351,7 +351,10 @@ export default function DanhSachDoPage() {
           </div>
 
           {loading ? (
-            <div className="p-12 text-center text-slate-400 italic">Đang tải...</div>
+            <div className="p-12 flex flex-col items-center gap-3 text-slate-400">
+              <div className="w-8 h-8 border-3 border-nav-bg border-t-transparent rounded-full animate-spin" style={{borderWidth:"3px"}} />
+              <span className="text-sm italic">Đang tải dữ liệu...</span>
+            </div>
           ) : filtered.length > 0 ? (
             filtered.map((ticket) => (
               <TicketItem
@@ -371,10 +374,14 @@ export default function DanhSachDoPage() {
 
       <button
         onClick={() => navigate("/nhan-do")}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-nav-bg text-white rounded-full shadow-lg hover:opacity-90 transition-transform active:scale-95 flex items-center justify-center z-50"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-nav-bg text-white rounded-full shadow-lg hover:opacity-90 hover:scale-110 hover:shadow-2xl transition-all active:scale-95 flex items-center justify-center z-50 animate-glow-pulse"
+        title="Nhận đồ mới"
       >
         <Plus className="w-8 h-8" />
       </button>
     </div>
   );
 }
+
+
+

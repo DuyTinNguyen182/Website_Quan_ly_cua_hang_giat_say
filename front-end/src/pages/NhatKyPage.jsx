@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -71,7 +71,7 @@ export default function NhatKyPage() {
   }, [logs, search]);
 
   return (
-    <div className="min-h-screen bg-main-bg flex flex-col">
+    <div className="min-h-screen bg-mesh flex flex-col page-enter">
       <Header />
 
       {/* Thanh tiêu đề */}
@@ -116,7 +116,7 @@ export default function NhatKyPage() {
         {/* Header bảng */}
         <div className="flex items-center px-6 py-3 border-b border-gray-200">
           <span className="flex-1 text-sm font-bold text-gray-600">Chức năng</span>
-          <span className="w-60 shrink-0 text-sm font-bold text-gray-600">Nhân viên</span>
+          <span className="w-60 shrink-0 text-sm font-bold text-gray-600 text-right">Nhân viên</span>
         </div>
 
         {/* Danh sách log */}
@@ -132,7 +132,7 @@ export default function NhatKyPage() {
             filtered.map((log) => (
               <div
                 key={log.id}
-                className="flex items-start px-6 py-4 border-b border-gray-100 hover:bg-soft-blue-tint transition-colors"
+                className="flex items-start px-6 py-4 border-b border-gray-100 table-row-hover"
               >
                 {/* Cột trái: chức năng + mô tả */}
                 <div className="flex-1 pr-6 min-w-0">
@@ -174,3 +174,6 @@ export default function NhatKyPage() {
     </div>
   );
 }
+
+
+

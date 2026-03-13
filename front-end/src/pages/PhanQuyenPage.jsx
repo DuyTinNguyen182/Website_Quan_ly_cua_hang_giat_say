@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
@@ -391,10 +391,20 @@ export default function PhanQuyenPage() {
   };
 
   return (
-    <div className="min-h-screen bg-main-bg">
+    <div className="min-h-screen bg-mesh page-enter">
       <Header />
 
-      <div className="p-5 max-w-360 mx-auto">
+      {/* Loading guard */}
+      {loadingStaff && (
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-9 h-9 border-[3px] border-nav-bg border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-slate-400 font-medium">Đang tải dữ liệu...</span>
+          </div>
+        </div>
+      )}
+
+      <div className="p-5 max-w-360 mx-auto transition-opacity duration-300" style={{opacity: loadingStaff ? 0 : 1, pointerEvents: loadingStaff ? "none" : "auto"}}>
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
@@ -491,11 +501,7 @@ export default function PhanQuyenPage() {
             <button
               onClick={handleSavePerms}
               disabled={!selectedId || savingPerms}
-              className={`w-full rounded-full py-2.5 text-sm font-semibold text-white transition-all disabled:opacity-40 ${
-                saveSuccess
-                  ? "bg-green-500"
-                  : "bg-nav-bg hover:opacity-90"
-              }`}
+              className={`btn-magnetic w-full rounded-full py-2.5 text-sm font-semibold text-white disabled:opacity-40 ${saveSuccess ? "bg-green-500" : "btn-shimmer"}`}
             >
               {savingPerms ? "Đang lưu..." : saveSuccess ? "Đã lưu ✓" : "Lưu thay đổi"}
             </button>
@@ -632,10 +638,10 @@ export default function PhanQuyenPage() {
       ══════════════════════════════════════════════ */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center"
           onClick={(e) => e.target === e.currentTarget && closeModal()}
         >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8">
+          <div className="bg-white animate-scale-in rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8">
             <h2 className="text-lg font-semibold text-gray-800 mb-7">
               {modalMode === "add" ? "Thêm tài khoản" : "Cập nhật tài khoản"}
             </h2>
@@ -749,7 +755,7 @@ export default function PhanQuyenPage() {
               <button
                 onClick={handleModalSubmit}
                 disabled={modalSaving}
-                className="text-sm font-semibold text-red-500 hover:text-red-600 disabled:opacity-50 transition-colors tracking-wide"
+                className="btn-magnetic btn-shimmer text-sm font-semibold text-white px-4 py-1.5 rounded-full disabled:opacity-50"
               >
                 {modalSaving ? "ĐANG LƯU..." : "LƯU THAY ĐỔI"}
               </button>
@@ -760,3 +766,6 @@ export default function PhanQuyenPage() {
     </div>
   );
 }
+
+
+

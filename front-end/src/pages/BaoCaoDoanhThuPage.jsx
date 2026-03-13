@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -320,12 +320,12 @@ export default function BaoCaoDoanhThuPage() {
       </div>
 
       {/* ─── Main ─── */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar py-6 px-4">
+      <main className="flex-1 overflow-y-auto custom-scrollbar py-6 px-4 page-enter">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Summary cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1 - Purple */}
-            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#7c3aed,#6d28d9)" }}>
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3 card-lift animate-fade-up delay-100" style={{ background: "linear-gradient(135deg,#7c3aed,#6d28d9)", boxShadow: "0 8px 24px rgba(124,58,237,0.35)" }}>
               <div className="text-xs font-bold uppercase tracking-wide opacity-90">Đơn hàng phát sinh</div>
               <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.totalAmount)}</div>
               <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
@@ -333,7 +333,7 @@ export default function BaoCaoDoanhThuPage() {
               </div>
             </div>
             {/* Card 2 - Green */}
-            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#16a34a,#15803d)" }}>
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3 card-lift animate-fade-up delay-200" style={{ background: "linear-gradient(135deg,#16a34a,#15803d)", boxShadow: "0 8px 24px rgba(22,163,74,0.35)" }}>
               <div className="text-xs font-bold uppercase tracking-wide opacity-90">Đã thu tiền khách</div>
               <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.paidAmount)}</div>
               <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
@@ -341,7 +341,7 @@ export default function BaoCaoDoanhThuPage() {
               </div>
             </div>
             {/* Card 3 - Orange */}
-            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#ea580c,#c2410c)" }}>
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3 card-lift animate-fade-up delay-300" style={{ background: "linear-gradient(135deg,#ea580c,#c2410c)", boxShadow: "0 8px 24px rgba(234,88,12,0.35)" }}>
               <div className="text-xs font-bold uppercase tracking-wide opacity-90">Chưa thu &amp; Chờ giao</div>
               <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.unpaidActiveAmount)}</div>
               <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
@@ -349,7 +349,7 @@ export default function BaoCaoDoanhThuPage() {
               </div>
             </div>
             {/* Card 4 - Dark slate */}
-            <div className="rounded-xl p-5 text-white flex flex-col gap-3" style={{ background: "linear-gradient(135deg,#475569,#334155)" }}>
+            <div className="rounded-xl p-5 text-white flex flex-col gap-3 card-lift animate-fade-up delay-400" style={{ background: "linear-gradient(135deg,#475569,#334155)", boxShadow: "0 8px 24px rgba(71,85,105,0.35)" }}>
               <div className="text-xs font-bold uppercase tracking-wide opacity-90">Khách nợ</div>
               <div className="text-2xl font-black">{loading ? "—" : formatCurrency(summaryStats.debtAmount)}</div>
               <div className="inline-flex items-center gap-1 bg-white/20 rounded-full px-2.5 py-0.5 text-xs font-bold w-fit">
@@ -414,7 +414,7 @@ export default function BaoCaoDoanhThuPage() {
                     return (
                       <tr
                         key={idx}
-                        className="hover:bg-gray-50 transition-colors"
+                        className="table-row-hover hover:bg-indigo-50/40 transition-all"
                       >
                         <td className="py-3.5 px-6 border-b border-gray-100 font-semibold text-gray-700">
                           Tháng {String(d.month).padStart(2, "0")}/{d.year}
@@ -461,3 +461,6 @@ export default function BaoCaoDoanhThuPage() {
     </div>
   );
 }
+
+
+

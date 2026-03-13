@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -86,7 +86,7 @@ export default function DoiMatKhauPage() {
     <div className="min-h-screen flex flex-col bg-main-bg font-sans">
       <Header activePage="" />
 
-      <main className="flex-1 flex items-center justify-center px-4 py-10">
+      <main className="flex-1 flex items-center justify-center px-4 py-10 page-enter">
         <div className="w-full max-w-md">
 
           {/* Card chính */}
@@ -180,3 +180,6 @@ export default function DoiMatKhauPage() {
     </div>
   );
 }
+
+
+

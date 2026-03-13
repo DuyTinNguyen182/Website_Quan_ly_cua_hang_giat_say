@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -7,9 +7,9 @@ import { ChevronLeft, Filter } from "lucide-react";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 
-const SummaryCard = ({ icon, title, amount, bgClass, textClass }) => (
-  <div className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 flex items-center gap-6">
-    <div className={`w-14 h-14 ${bgClass} rounded-full flex items-center justify-center text-white`}>
+const SummaryCard = ({ icon, title, amount, bgClass, textClass, delay }) => (
+  <div className={`bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-200 flex items-center gap-6 card-lift animate-fade-up ${delay}`}>
+    <div className={`w-14 h-14 ${bgClass} rounded-full flex items-center justify-center text-white transition-transform duration-300 hover:scale-110 hover:rotate-6`}>
       <span className="material-symbols-outlined text-2xl">{icon}</span>
     </div>
     <div>
@@ -107,7 +107,7 @@ export default function KetQuaKinhDoanhPage() {
       </div>
 
       {/* ─── Main ─── */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar py-6 px-4">
+      <main className="flex-1 overflow-y-auto custom-scrollbar py-6 px-4 page-enter">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -117,6 +117,7 @@ export default function KetQuaKinhDoanhPage() {
               amount={loading ? "—" : `+${formatCurrency(data.income)}`}
               bgClass="bg-accent-green"
               textClass="text-accent-green"
+              delay="delay-100"
             />
             <SummaryCard
               icon="trending_down"
@@ -124,6 +125,7 @@ export default function KetQuaKinhDoanhPage() {
               amount={loading ? "—" : `-${formatCurrency(data.expense)}`}
               bgClass="bg-accent-orange"
               textClass="text-accent-orange"
+              delay="delay-200"
             />
             <SummaryCard
               icon="account_balance_wallet"
@@ -131,6 +133,7 @@ export default function KetQuaKinhDoanhPage() {
               amount={loading ? "—" : formatCurrency(soDuHienTai)}
               bgClass="bg-accent-blue"
               textClass="text-accent-blue"
+              delay="delay-300"
             />
           </div>
 
@@ -196,3 +199,6 @@ export default function KetQuaKinhDoanhPage() {
     </div>
   );
 }
+
+
+

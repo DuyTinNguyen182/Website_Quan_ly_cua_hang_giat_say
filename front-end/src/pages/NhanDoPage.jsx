@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useCallback, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -50,19 +50,22 @@ export default function NhanDoPage() {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
+  const [loading, setLoading] = useState(true);
+
   /* --- load shelves & services on mount --- */
   useEffect(() => {
-    axiosInstance.get("/shelves").then((res) => {
-      setShelves(res.data.filter((s) => s.is_active).map((s) => ({ _id: s._id, name: s.name })));
-    }).catch(() => {});
-    axiosInstance.get("/services").then((res) => {
-      setServices(res.data.filter((s) => s.is_active).map((s) => ({
+    Promise.all([
+      axiosInstance.get("/shelves"),
+      axiosInstance.get("/services"),
+    ]).then(([shelvesRes, servicesRes]) => {
+      setShelves(shelvesRes.data.filter((s) => s.is_active).map((s) => ({ _id: s._id, name: s.name })));
+      setServices(servicesRes.data.filter((s) => s.is_active).map((s) => ({
         id: s._id,
         name: s.name,
         price: s.price,
         unit: s.unit_id?.name ?? "",
       })));
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   /* --- customer search debounce --- */
@@ -175,10 +178,23 @@ export default function NhanDoPage() {
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
       <Header activePage="nhan-do" />
 
+      {/* ─── Loading skeleton ─── */}
+      {loading && (
+        <div className="flex-1 flex items-center justify-center gap-4 animate-fade-in">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-3 border-nav-bg border-t-transparent rounded-full animate-spin" style={{borderWidth:"3px"}} />
+            <span className="text-sm text-slate-400 font-medium">Đang tải dữ liệu...</span>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Main UI (hidden while loading) ─── */}
+      <div className={`flex-1 flex flex-col overflow-hidden transition-opacity duration-300 ${loading ? "opacity-0 pointer-events-none h-0" : "opacity-100 animate-fade-in"}`}>
+
       {/* ─── Tab bar ─── */}
       <div className="bg-white border-b border-gray-200 h-10 flex items-center px-4 shrink-0 justify-between">
         <div className="flex items-center h-full">
-          <div className="border-b-2 border-nav-bg h-full flex items-center px-6 gap-2 text-nav-bg font-bold text-xs">
+          <div className="border-b-2 border-nav-bg h-full flex items-center px-6 gap-2 text-nav-bg font-bold text-xs animate-fade-in">
             <span className="material-symbols-outlined text-[16px]">description</span>
             CỬA SỔ 1
           </div>
@@ -228,7 +244,7 @@ export default function NhanDoPage() {
                 selectedItems.map((item, idx) => (
                   <div
                     key={item.id}
-                    className="grid grid-cols-12 items-center px-3 py-2 border-b border-gray-100 text-sm hover:bg-gray-50"
+                    className="grid grid-cols-12 items-center px-3 py-2 border-b border-gray-100 text-sm table-row-hover"
                   >
                     <div className="col-span-1 text-center text-gray-500">
                       {idx + 1}
@@ -290,7 +306,7 @@ export default function NhanDoPage() {
                 <div
                   key={svc.id}
                   onClick={() => addService(svc)}
-                  className="bg-white border border-blue-300 rounded-lg p-3 flex items-center gap-3 relative hover:shadow-md cursor-pointer group transition-shadow"
+                  className="bg-white border border-blue-300 rounded-lg p-3 flex items-center gap-3 relative hover:shadow-lg hover:-translate-y-0.5 hover:border-accent-blue cursor-pointer group transition-all duration-200"
                 >
                   <span className="absolute top-0 right-0 bg-blue-50 text-blue-500 text-[10px] font-bold px-1.5 py-0.5 rounded-bl-md border-l border-b border-blue-300">
                     {svc.unit}
@@ -487,7 +503,7 @@ export default function NhanDoPage() {
             <button
               disabled={submitting}
               onClick={() => handleSave(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity bg-accent-blue text-white hover:opacity-90 disabled:opacity-60"
+              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 bg-accent-blue text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
             >
               <Printer size={18} />
               In Phiếu
@@ -495,7 +511,7 @@ export default function NhanDoPage() {
             <button
               disabled={submitting}
               onClick={() => handleSave(false)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-opacity bg-accent-green text-white hover:opacity-90 disabled:opacity-60"
+              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 bg-accent-green text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
             >
               <Save size={18} />
               {submitting ? "Đang lưu..." : "Lưu Phiếu"}
@@ -506,9 +522,9 @@ export default function NhanDoPage() {
 
       {/* ─── Shelf Picker Modal ─── */}
       {shelfModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setShelfModalOpen(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShelfModalOpen(false)}>
           <div
-            className="bg-white rounded-xl shadow-2xl w-[480px] max-h-[80vh] flex flex-col"
+            className="bg-white rounded-2xl shadow-2xl w-[480px] max-h-[80vh] flex flex-col animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Search */}
@@ -565,6 +581,10 @@ export default function NhanDoPage() {
           </div>
         </div>
       )}
+      </div>{/* end main UI wrapper */}
     </div>
   );
 }
+
+
+

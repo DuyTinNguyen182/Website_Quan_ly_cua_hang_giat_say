@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+﻿import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -155,7 +155,7 @@ export default function ThuChiPage() {
       </div>
 
       {/* ─── Main ─── */}
-      <main className="flex-1 overflow-y-auto custom-scrollbar p-4">
+      <main className="flex-1 overflow-y-auto custom-scrollbar p-4 page-enter">
         <div className="max-w-7xl mx-auto">
           {/* Search */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -191,10 +191,13 @@ export default function ThuChiPage() {
 
               {/* Rows */}
               {loading ? (
-                <div className="py-12 text-center text-slate-400 italic">Đang tải...</div>
+                <div className="py-12 flex flex-col items-center gap-3 text-slate-400 italic">
+                  <div className="w-8 h-8 border-[3px] border-nav-bg border-t-transparent rounded-full animate-spin" />
+                  Đang tải...
+                </div>
               ) : filtered.length > 0 ? (
                 filtered.map((r) => (
-                  <div key={r._id} className="grid grid-cols-12 px-4 py-3.5 border-b border-gray-100 hover:bg-gray-50 transition-colors items-center text-sm">
+                  <div key={r._id} className="grid grid-cols-12 px-4 py-3.5 border-b border-gray-100 table-row-hover items-center text-sm">
                     <div className="col-span-1 flex justify-center">
                       <Printer size={18} className="text-gray-500 cursor-pointer hover:text-nav-bg" />
                     </div>
@@ -260,11 +263,11 @@ export default function ThuChiPage() {
 
       {/* ─── Create Transaction Modal ─── */}
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}>
           <form
             onClick={(e) => e.stopPropagation()}
             onSubmit={handleCreate}
-            className="bg-white rounded-xl shadow-2xl w-[420px] p-6 flex flex-col gap-4"
+            className="bg-white animate-scale-in rounded-2xl shadow-2xl w-[420px] p-6 flex flex-col gap-4"
           >
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-gray-800 text-base">Tạo phiếu Thu / Chi</h2>
@@ -329,7 +332,7 @@ export default function ThuChiPage() {
 
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-md transition-colors">Hủy</button>
-              <button type="submit" disabled={saving} className="flex-1 py-2.5 text-sm font-bold text-white bg-nav-bg rounded-md hover:opacity-90 disabled:opacity-60">
+              <button type="submit" disabled={saving} className="btn-magnetic btn-shimmer flex-1 py-2.5 text-sm font-bold text-white rounded-md disabled:opacity-60">
                 {saving ? "Đang lưu..." : "Lưu phiếu"}
               </button>
             </div>
@@ -339,3 +342,6 @@ export default function ThuChiPage() {
     </div>
   );
 }
+
+
+
