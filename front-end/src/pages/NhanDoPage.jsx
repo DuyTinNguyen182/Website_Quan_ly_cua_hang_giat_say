@@ -49,6 +49,7 @@ export default function NhanDoPage() {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [latestCustomers, setLatestCustomers] = useState([]);
   
   // new customer modal
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
@@ -66,14 +67,29 @@ export default function NhanDoPage() {
     Promise.all([
       axiosInstance.get("/shelves"),
       axiosInstance.get("/services"),
-    ]).then(([shelvesRes, servicesRes]) => {
+      axiosInstance.get("/customers?limit=5"), // Fetch latest customers
+    ]).then(([shelvesRes, servicesRes, customerRes]) => {
       setShelves(shelvesRes.data.filter((s) => s.is_active).map((s) => ({ _id: s._id, name: s.name })));
-      setServices(servicesRes.data.filter((s) => s.is_active).map((s) => ({
+      
+      const activeServices = servicesRes.data.filter((s) => s.is_active).map((s) => ({
         id: s._id,
         name: s.name,
         price: s.price,
         unit: s.unit_id?.name ?? "",
-      })));
+      }));
+      setServices(activeServices);
+      
+      // Select "Giặt hỗn hợp" by default if it exists
+      const defaultService = activeServices.find(s => s.name.toLowerCase() === "giặt hỗn hợp") || activeServices[0];
+      if (defaultService) {
+        setSelectedItems([{ ...defaultService, qty: 1 }]);
+      }
+
+      // Latest customers fall back logic (if api sorts by newest)
+      if (customerRes && customerRes.data) {
+        setLatestCustomers(customerRes.data.slice(0, 5)); // Top 5
+      }
+
     }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
@@ -114,8 +130,15 @@ export default function NhanDoPage() {
   const updateQty = (id, delta) => {
     setSelectedItems((prev) =>
       prev
-        .map((i) => (i.id === id ? { ...i, qty: i.qty + delta } : i))
+        .map((i) => (i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
         .filter((i) => i.qty > 0),
+    );
+  };
+
+  const setExactQty = (id, quantity) => {
+    if (quantity <= 0 || isNaN(quantity)) return;
+    setSelectedItems((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, qty: quantity } : i))
     );
   };
 
@@ -262,7 +285,7 @@ export default function NhanDoPage() {
       <div className={`flex-1 flex flex-col overflow-hidden transition-opacity duration-300 ${loading ? "opacity-0 pointer-events-none h-0" : "opacity-100 animate-fade-in"}`}>
 
       {/* ─── Tab bar ─── */}
-      <div className="bg-white border-b border-gray-200 h-10 flex items-center px-4 shrink-0 justify-between">
+      {/* <div className="bg-white border-b border-gray-200 h-10 flex items-center px-4 shrink-0 justify-between">
         <div className="flex items-center h-full">
           <div className="border-b-2 border-nav-bg h-full flex items-center px-6 gap-2 text-nav-bg font-bold text-xs animate-fade-in">
             <span className="material-symbols-outlined text-[16px]">description</span>
@@ -272,14 +295,14 @@ export default function NhanDoPage() {
         <button className="p-1 text-gray-500 hover:text-gray-700">
           <PlusCircle size={20} />
         </button>
-      </div>
+      </div> */}
 
       {/* ─── Main Content ─── */}
       <main className="flex-1 flex overflow-hidden p-3 gap-3">
         {/* === Left Panel === */}
         <div className="flex-[7] flex flex-col gap-3 overflow-hidden">
           {/* Search */}
-          <div className="relative bg-white border border-gray-200 rounded-md shadow-sm p-1">
+          {/* <div className="relative bg-white border border-gray-200 rounded-md shadow-sm p-1">
             <div className="flex items-center">
               <input
                 type="text"
@@ -290,7 +313,7 @@ export default function NhanDoPage() {
               />
               <ChevronDown size={20} className="text-gray-400 px-3 cursor-pointer" />
             </div>
-          </div>
+          </div> */}
 
           {/* Selected Services Table */}
           <div className="flex-1 bg-white border border-gray-200 rounded-md shadow-sm overflow-hidden flex flex-col">
@@ -330,7 +353,13 @@ export default function NhanDoPage() {
                       >
                         <Minus size={12} />
                       </button>
-                      <span className="w-8 text-center font-bold">{item.qty}</span>
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.qty}
+                        onChange={(e) => setExactQty(item.id, parseInt(e.target.value) || 1)}
+                        className="w-10 text-center font-bold border rounded hide-number-spinners py-0.5 text-sm"
+                      />
                       <button
                         onClick={() => updateQty(item.id, 1)}
                         className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
@@ -410,7 +439,7 @@ export default function NhanDoPage() {
         <div className="flex-[3] bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col overflow-hidden">
           <div className="flex-1 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
             {/* Customer search */}
-            <div className="relative flex items-center border-b border-gray-200 pb-2">
+<div className="relative flex items-center border border-gray-200 rounded-md p-1.5 px-3 bg-gray-50">
               <input
                 type="text"
                 value={selectedCustomer ? selectedCustomer.full_name : customerSearch}
@@ -420,26 +449,37 @@ export default function NhanDoPage() {
                   setShowCustomerDropdown(true);
                 }}
                 onFocus={() => setShowCustomerDropdown(true)}
-                className="flex-1 border-none focus:ring-0 focus:outline-none text-sm italic p-0 placeholder:text-gray-400"
-                placeholder="Tìm kiếm tên, điện thoại khách..."
+                onBlur={() => {
+                  // Delay hiding so clicks on dropdown items can register first
+                  setTimeout(() => setShowCustomerDropdown(false), 200);
+                }}
+                className="flex-1 border-none focus:ring-0 focus:outline-none text-sm p-0 bg-transparent placeholder:text-gray-500 font-medium"
+                placeholder="Tìm tên, điện thoại..."
               />
               {selectedCustomer ? (
-                <button onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); }} className="text-gray-400 hover:text-gray-600">
-                  <X size={16} />
+                <button onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); }} className="text-gray-400 hover:text-gray-600 transition-colors ml-2">
+                  <X size={18} />
                 </button>
               ) : (
-                <UserPlus size={20} onClick={() => setIsAddCustomerModalOpen(true)} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+                <button 
+                  onClick={() => setIsAddCustomerModalOpen(true)}
+                  className="flex items-center gap-1.5 ml-2 pl-2 border-l border-gray-300 text-nav-bg hover:text-blue-700 transition-colors cursor-pointer text-xs font-bold whitespace-nowrap"
+                >
+                  <UserPlus size={16} />
+                  MỚI
+                </button>
               )}
-              {showCustomerDropdown && customers.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                  {customers.map((c) => (
+              {showCustomerDropdown && (customerSearch ? customers.length > 0 : latestCustomers.length > 0) && (
+                <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                    {!customerSearch && latestCustomers.length > 0 && <div className="px-3 py-1.5 text-[11px] font-bold text-gray-400 uppercase bg-gray-50">Khách hàng gần đây</div>}
+                  {(customerSearch ? customers : latestCustomers).map((c) => (
                     <div
                       key={c._id}
-                      className="px-3 py-2 text-sm hover:bg-blue-50 cursor-pointer"
+                      className="px-4 py-2.5 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-50 last:border-b-0"
                       onMouseDown={() => { setSelectedCustomer(c); setCustomerSearch(""); setShowCustomerDropdown(false); setCustomers([]); }}
                     >
-                      <span className="font-bold">{c.full_name}</span>
-                      <span className="text-gray-500 ml-2">{c.phone}</span>
+                      <div className="font-bold text-gray-800">{c.full_name}</div>
+                      <div className="text-xs text-gray-500 mt-0.5">{c.phone}</div>
                     </div>
                   ))}
                 </div>

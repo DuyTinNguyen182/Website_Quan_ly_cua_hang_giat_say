@@ -57,23 +57,27 @@ export default function Header({ activePage }) {
             <NavLink href="/nhan-do" icon="add_circle" label="NHẬN ĐỒ" active={activePage === "nhan-do"} navigate={navigate} />
             <NavLink href="/danh-sach-do" icon="fact_check" label="DANH SÁCH ĐỒ" active={activePage === "danh-sach-do"} navigate={navigate} />
             <NavLink href="/thu-chi" icon="payments" label="THU - CHI" active={activePage === "thu-chi"} navigate={navigate} />
-            <div className="relative group">
-              <button className={`px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-all nav-link-text ${activePage === "ket-qua-kinh-doanh" || activePage === "bao-cao-doanh-thu" ? "nav-item-active" : ""}`}>
-                <span className="material-symbols-outlined text-[18px]">analytics</span>
-                KẾT QUẢ KINH DOANH
-                <span className="material-symbols-outlined text-[16px] transition-transform duration-200 group-hover:rotate-180">expand_more</span>
-              </button>
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[200px] opacity-0 invisible -translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-50">
-                <button onClick={() => navigate("/bao-cao-doanh-thu")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">bar_chart</span>
-                  Báo cáo doanh thu tháng
+            
+            {user?.role === "ADMIN" && (
+              <div className="relative group">
+                <button className={`px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-all nav-link-text ${activePage === "ket-qua-kinh-doanh" || activePage === "bao-cao-doanh-thu" ? "nav-item-active" : ""}`}>
+                  <span className="material-symbols-outlined text-[18px]">analytics</span>
+                  KẾT QUẢ KINH DOANH
+                  <span className="material-symbols-outlined text-[16px] transition-transform duration-200 group-hover:rotate-180">expand_more</span>
                 </button>
-                <button onClick={() => navigate("/ket-qua-kinh-doanh")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
-                  Sổ quỹ cửa hàng
-                </button>
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[200px] opacity-0 invisible -translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-50">
+                  <button onClick={() => navigate("/bao-cao-doanh-thu")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">bar_chart</span>
+                    Báo cáo doanh thu tháng
+                  </button>
+                  <button onClick={() => navigate("/ket-qua-kinh-doanh")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
+                    Sổ quỹ cửa hàng
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+            
             <div className="relative group">
               <button className={`px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-all nav-link-text ${["cua-hang","khach-hang","ke-luu-do","don-vi-tinh","bang-gia-dich-vu","tai-khoan-ngan-hang"].includes(activePage) ? "nav-item-active" : ""}`}>
                 <span className="material-symbols-outlined text-[18px]">assignment</span>
@@ -81,50 +85,48 @@ export default function Header({ activePage }) {
                 <span className="material-symbols-outlined text-[16px] transition-transform duration-200 group-hover:rotate-180">expand_more</span>
               </button>
               <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[210px] opacity-0 invisible -translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-50">
-                <button onClick={() => navigate("/cua-hang")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">storefront</span>
-                  Cửa hàng
-                </button>
                 <button onClick={() => navigate("/khach-hang")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
                   <span className="material-symbols-outlined text-[16px]">group</span>
                   Khách hàng
                 </button>
-                <button onClick={() => navigate("/ke-luu-do")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">shelves</span>
-                  Kệ lưu đồ
-                </button>
-                <button onClick={() => navigate("/don-vi-tinh")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">straighten</span>
-                  Đơn vị tính
-                </button>
-                <button onClick={() => navigate("/bang-gia-dich-vu")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">sell</span>
-                  Bảng giá dịch vụ
-                </button>
-                <div className="border-t border-gray-100 my-1" />
-                <button onClick={() => navigate("/tai-khoan-ngan-hang")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">account_balance</span>
-                  Tài khoản ngân hàng
-                </button>
+                {user?.role === "ADMIN" && (
+                  <>
+                    <button onClick={() => navigate("/ke-luu-do")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">shelves</span>
+                      Kệ lưu đồ
+                    </button>
+                    <button onClick={() => navigate("/don-vi-tinh")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">straighten</span>
+                      Đơn vị tính
+                    </button>
+                    <button onClick={() => navigate("/bang-gia-dich-vu")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px]">sell</span>
+                      Bảng giá dịch vụ
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-            <div className="relative group">
-              <button className={`px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-all nav-link-text ${["phan-quyen","mau-hoa-don","nhat-ky"].includes(activePage) ? "nav-item-active" : ""}`}>
-                <span className="material-symbols-outlined text-[18px]">settings</span>
-                HỆ THỐNG
-                <span className="material-symbols-outlined text-[16px] transition-transform duration-200 group-hover:rotate-180">expand_more</span>
-              </button>
-              <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[220px] opacity-0 invisible -translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-50">
-                <button onClick={() => navigate("/phan-quyen")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
-                  Phân quyền nhân viên
+            
+            {user?.role === "ADMIN" && (
+              <div className="relative group">
+                <button className={`px-3 py-1.5 rounded-md flex items-center gap-1 text-[11px] font-bold hover:bg-white/10 transition-all nav-link-text ${["phan-quyen","mau-hoa-don","nhat-ky"].includes(activePage) ? "nav-item-active" : ""}`}>
+                  <span className="material-symbols-outlined text-[18px]">settings</span>
+                  HỆ THỐNG
+                  <span className="material-symbols-outlined text-[16px] transition-transform duration-200 group-hover:rotate-180">expand_more</span>
                 </button>
-                <button onClick={() => navigate("/nhat-ky")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px]">history</span>
-                  Nhật ký hệ thống
-                </button>
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[220px] opacity-0 invisible -translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-50">
+                  <button onClick={() => navigate("/phan-quyen")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">manage_accounts</span>
+                    Tài khoản người dùng
+                  </button>
+                  <button onClick={() => navigate("/nhat-ky")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px]">history</span>
+                    Nhật ký hệ thống
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 

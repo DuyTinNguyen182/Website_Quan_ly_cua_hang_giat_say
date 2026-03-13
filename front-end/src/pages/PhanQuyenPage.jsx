@@ -4,10 +4,6 @@ import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
 
-// ─────────────────────────────────────────────
-// Cấu trúc phân quyền (theo ảnh mẫu, đúng thứ tự)
-// Loại bỏ: TÍCH ĐIỂM/KHUYẾN MÃI, TRẠNG THÁI PHIẾU, HƯỚNG DẪN
-// ─────────────────────────────────────────────
 const PERMISSIONS = [
   { id: "nhan_do", label: "NHẬN ĐỒ", children: [] },
   {
@@ -201,6 +197,7 @@ export default function PhanQuyenPage() {
     password: "",
     email: "",
     locked: false,
+    role: "STAFF",
   });
   const [showPwd, setShowPwd] = useState(false);
   const [modalError, setModalError] = useState("");
@@ -315,7 +312,7 @@ export default function PhanQuyenPage() {
   const openAdd = () => {
     setModalMode("add");
     setEditingStaff(null);
-    setModalForm({ full_name: "", phone: "", password: "", email: "", locked: false });
+    setModalForm({ full_name: "", phone: "", password: "", email: "", locked: false, role: "STAFF" });
     setModalError("");
     setShowPwd(false);
     setShowModal(true);
@@ -330,6 +327,7 @@ export default function PhanQuyenPage() {
       password: "",
       email: s.email || "",
       locked: !s.is_active,
+      role: s.role || "STAFF",
     });
     setModalError("");
     setShowPwd(false);
@@ -348,7 +346,7 @@ export default function PhanQuyenPage() {
       return;
     }
     if (!modalForm.phone.trim()) {
-      setModalError("Vui lòng nhập tài khoản đăng nhập");
+      setModalError("Vui lòng nhập số điện thoại");
       return;
     }
     if (modalMode === "add" && !modalForm.password.trim()) {
@@ -364,7 +362,7 @@ export default function PhanQuyenPage() {
           password: modalForm.password,
           email: modalForm.email.trim() || null,
           is_active: !modalForm.locked,
-          role: "STAFF",
+          role: modalForm.role,
         });
       } else {
         await axiosInstance.put(`/users/${editingStaff._id}`, {
@@ -372,6 +370,7 @@ export default function PhanQuyenPage() {
           phone: modalForm.phone.trim(),
           email: modalForm.email.trim() || null,
           is_active: !modalForm.locked,
+          role: modalForm.role,
         });
         if (modalForm.password.trim()) {
           await axiosInstance.put(`/users/${editingStaff._id}/password`, {
@@ -387,6 +386,16 @@ export default function PhanQuyenPage() {
       );
     } finally {
       setModalSaving(false);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) return;
+    try {
+      await axiosInstance.delete(`/users/${id}`);
+      await loadStaff();
+    } catch {
+      alert("Không thể xóa nhân viên này.");
     }
   };
 
@@ -418,99 +427,107 @@ export default function PhanQuyenPage() {
         <div className="flex gap-4 items-start">
 
           {/* ══════════════════════════════════
-              PANEL TRÁI: NHÂN VIÊN
+              PANEL: DANH SÁCH NHÂN VIÊN
           ══════════════════════════════════ */}
-          <div className="bg-white rounded-2xl shadow-sm w-64 shrink-0 p-5 flex flex-col gap-4">
+          <div className="bg-white rounded-2xl shadow-sm w-full p-6 flex flex-col gap-6">
             {/* Header */}
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
-                Nhân viên
+              <span className="text-sm font-bold tracking-widest text-gray-500 uppercase">
+                Danh sách nhân viên
               </span>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-1 text-xs font-semibold text-nav-bg border border-nav-bg rounded-full px-3 py-0.5 hover:bg-purple-50 transition-colors"
+                className="flex items-center gap-1.5 text-sm font-semibold text-white bg-nav-bg rounded-lg px-4 py-2 hover:bg-opacity-90 transition-colors shadow-sm"
               >
-                <span className="material-symbols-outlined text-sm leading-none">add_circle</span>
-                Thêm
+                <span className="material-symbols-outlined text-lg leading-none">add</span>
+                Thêm tài khoản
               </button>
             </div>
 
             {/* Danh sách nhân viên */}
-            <div className="flex flex-col gap-1 min-h-20">
+            <div className="min-h-[200px] overflow-x-auto">
               {loadingStaff ? (
-                <p className="text-xs text-gray-400 text-center py-6">Đang tải...</p>
+                <p className="text-sm text-gray-400 text-center py-10">Đang tải...</p>
               ) : staff.length === 0 ? (
-                <p className="text-xs text-gray-400 text-center py-6">Chưa có nhân viên</p>
+                <p className="text-sm text-gray-400 text-center py-10">Chưa có nhân viên</p>
               ) : (
-                staff.map((s) => (
-                  <div
-                    key={s._id}
-                    onClick={() => setSelectedId(s._id)}
-                    className={`flex items-start gap-2.5 px-2.5 py-2.5 rounded-xl cursor-pointer transition-colors ${
-                      selectedId === s._id
-                        ? "bg-purple-50"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    {/* Custom radio */}
-                    <div
-                      className={`mt-0.5 w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
-                        selectedId === s._id
-                          ? "border-nav-bg bg-nav-bg"
-                          : "border-gray-400"
-                      }`}
-                    >
-                      {selectedId === s._id && (
-                        <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                      )}
-                    </div>
-
-                    {/* Thông tin */}
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={`text-xs font-bold uppercase leading-snug truncate ${
-                          selectedId === s._id
-                            ? "text-nav-bg"
-                            : "text-gray-700"
-                        }`}
-                      >
-                        {s.full_name}
-                      </p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
-                        Tài khoản: {s.phone}
-                      </p>
-                    </div>
-
-                    {/* Icon cài đặt */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEdit(s);
-                      }}
-                      className="shrink-0 text-gray-400 hover:text-nav-bg transition-colors mt-0.5"
-                      title="Cập nhật tài khoản"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">manage_accounts</span>
-                    </button>
-                  </div>
-                ))
+                <table className="w-full text-left border-collapse min-w-[700px]">
+                  <thead>
+                    <tr className="border-b-2 border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <th className="py-3 px-4">Nhân viên</th>
+                      <th className="py-3 px-4">Tài khoản</th>
+                      <th className="py-3 px-4">Loại tài khoản</th>
+                      <th className="py-3 px-4">Trạng thái</th>
+                      <th className="py-3 px-4 text-right">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staff.map((s) => (
+                      <tr key={s._id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <p className="text-sm font-bold text-gray-800 uppercase">{s.full_name}</p>
+                          {s.email && <p className="text-xs text-gray-400 mt-0.5">{s.email}</p>}
+                        </td>
+                        <td className="py-3.5 px-4 text-sm text-gray-600 font-medium">
+                          {s.phone}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${
+                            s.role === 'ADMIN' 
+                              ? 'bg-purple-100 text-purple-700' 
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {s.role === 'ADMIN' ? 'ADMIN' : 'NHÂN VIÊN'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide ${
+                            s.is_active 
+                              ? 'bg-green-100 text-green-700' 
+                              : 'bg-gray-200 text-gray-600'
+                          }`}>
+                            {s.is_active ? 'HOẠT ĐỘNG' : 'ĐÃ KHÓA'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEdit(s)}
+                              className="text-gray-400 hover:text-blue-600 transition-colors bg-white border border-gray-200 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+                              title="Cập nhật tài khoản"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(s._id)}
+                              className="text-gray-400 hover:text-red-600 transition-colors bg-white border border-gray-200 w-8 h-8 rounded-lg flex items-center justify-center shadow-sm"
+                              title="Xóa tài khoản"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
 
             {/* Nút Lưu thay đổi */}
-            <button
+            {/* <button
               onClick={handleSavePerms}
               disabled={!selectedId || savingPerms}
               className={`btn-magnetic w-full rounded-full py-2.5 text-sm font-semibold text-white disabled:opacity-40 ${saveSuccess ? "bg-green-500" : "btn-shimmer"}`}
             >
               {savingPerms ? "Đang lưu..." : saveSuccess ? "Đã lưu ✓" : "Lưu thay đổi"}
-            </button>
+            </button> */}
           </div>
 
           {/* ══════════════════════════════════
               PANEL GIỮA: CỬA HÀNG
           ══════════════════════════════════ */}
-          <div className="bg-white rounded-2xl shadow-sm flex-1 p-5">
+          {/* <div className="bg-white rounded-2xl shadow-sm flex-1 p-5">
             <p className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
               Cửa hàng
             </p>
@@ -541,12 +558,12 @@ export default function PhanQuyenPage() {
                 </label>
               ))}
             </div>
-          </div>
+          </div> */}
 
           {/* ══════════════════════════════════
               PANEL PHẢI: CHỨC NĂNG
           ══════════════════════════════════ */}
-          <div className="bg-white rounded-2xl shadow-sm flex-1 p-5 max-h-[calc(100vh-160px)] overflow-y-auto">
+          {/* <div className="bg-white rounded-2xl shadow-sm flex-1 p-5 max-h-[calc(100vh-160px)] overflow-y-auto">
             <div className="flex items-start justify-between mb-1">
               <div>
                 <p className="text-[11px] font-bold tracking-widest text-gray-500 uppercase">
@@ -568,7 +585,6 @@ export default function PhanQuyenPage() {
               </button>
             </div>
 
-            {/* Cây phân quyền */}
             <div className="mt-3 flex flex-col">
               {PERMISSIONS.map((group) => {
                 const { checked, indeterminate } = getGroupState(group);
@@ -577,9 +593,9 @@ export default function PhanQuyenPage() {
 
                 return (
                   <div key={group.id} className="border-b border-gray-50 last:border-b-0">
-                    {/* Header nhóm */}
+
                     <div className="flex items-center gap-2 py-2.5 px-1">
-                      {/* Chevron toggle */}
+
                       <button
                         onClick={() => toggleCollapse(group.id)}
                         className={`transition-transform duration-200 ${
@@ -592,7 +608,6 @@ export default function PhanQuyenPage() {
                         </span>
                       </button>
 
-                      {/* Checkbox nhóm (indeterminate-capable) */}
                       <IndeterminateCheckbox
                         checked={checked}
                         indeterminate={indeterminate}
@@ -605,7 +620,6 @@ export default function PhanQuyenPage() {
                       </span>
                     </div>
 
-                    {/* Con */}
                     {hasChildren && !isCollapsed && (
                       <div className="flex flex-col pb-1">
                         {group.children.map((child) => (
@@ -629,7 +643,7 @@ export default function PhanQuyenPage() {
                 );
               })}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -663,10 +677,10 @@ export default function PhanQuyenPage() {
                 />
               </div>
 
-              {/* Tài khoản đăng nhập */}
+              {/* Số điện thoại */}
               <div className="flex flex-col gap-1">
                 <label className="text-sm text-gray-500">
-                  Tài khoản đăng nhập<span className="text-red-500">*</span>
+                  Số điện thoại<span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -721,6 +735,35 @@ export default function PhanQuyenPage() {
                   }
                   className="border-0 border-b border-gray-300 focus:border-nav-bg outline-none pb-1 text-sm bg-transparent"
                 />
+              </div>
+
+              {/* Loại tài khoản */}
+              <div className="flex flex-col gap-2 mt-1">
+                <label className="text-sm font-medium text-gray-700">Loại tài khoản</label>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="role"
+                      value="ADMIN"
+                      checked={modalForm.role === "ADMIN"}
+                      onChange={(e) => setModalForm((p) => ({ ...p, role: e.target.value }))}
+                      className="w-4 h-4 accent-nav-bg cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">Quản trị viên (Admin)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="role"
+                      value="STAFF"
+                      checked={modalForm.role === "STAFF"}
+                      onChange={(e) => setModalForm((p) => ({ ...p, role: e.target.value }))}
+                      className="w-4 h-4 accent-nav-bg cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700 font-medium">Nhân viên (Staff)</span>
+                  </label>
+                </div>
               </div>
 
               {/* Khóa tài khoản – chỉ hiển thị với tài khoản nhân viên */}
