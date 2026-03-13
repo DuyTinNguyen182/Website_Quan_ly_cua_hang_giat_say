@@ -17,9 +17,7 @@ import {
 
 const statusTabs = [
   { label: "Tất cả", value: null, active: "bg-nav-bg text-white", inactive: "text-nav-bg border border-nav-bg/40 hover:bg-nav-bg/10" },
-  { label: "Chờ bổ sung đồ", value: "PENDING_ITEMS", active: "bg-amber-500 text-white", inactive: "text-amber-600 border border-amber-300 hover:bg-amber-50" },
-  { label: "Đã đủ đồ", value: "ITEMS_READY", active: "bg-teal-500 text-white", inactive: "text-teal-600 border border-teal-300 hover:bg-teal-50" },
-  { label: "Đang giặt", value: "WASHING", active: "bg-blue-500 text-white", inactive: "text-blue-600 border border-blue-300 hover:bg-blue-50" },
+  { label: "Đơn mới", value: "RECEIVED", active: "bg-orange-500 text-white", inactive: "text-orange-600 border border-orange-300 hover:bg-orange-50" },
   { label: "Giặt xong", value: "READY", active: "bg-emerald-500 text-white", inactive: "text-emerald-600 border border-emerald-300 hover:bg-emerald-50" },
   { label: "Giao khách", value: "COMPLETED", active: "bg-sky-500 text-white", inactive: "text-sky-600 border border-sky-300 hover:bg-sky-50" },
   { label: "Đã hủy", value: "CANCELLED", active: "bg-red-500 text-white", inactive: "text-red-500 border border-red-300 hover:bg-red-50" },
@@ -27,9 +25,6 @@ const statusTabs = [
 
 const STATUS_LABEL = {
   RECEIVED: "Đơn mới",
-  PENDING_ITEMS: "Chờ bổ sung đồ",
-  ITEMS_READY: "Đã đủ đồ",
-  WASHING: "Đang giặt",
   READY: "Giặt xong",
   COMPLETED: "Giao khách",
   CANCELLED: "Đã hủy",
@@ -37,21 +32,16 @@ const STATUS_LABEL = {
 
 const statusColors = {
   RECEIVED: "bg-orange-500",
-  PENDING_ITEMS: "bg-yellow-500",
-  ITEMS_READY: "bg-teal-500",
-  WASHING: "bg-nav-bg",
-  READY: "bg-accent-green",
+  READY: "bg-emerald-500",
   COMPLETED: "bg-sky-500",
   CANCELLED: "bg-red-500",
 };
 
 const ALL_STATUSES = [
-  { value: "PENDING_ITEMS", label: "Chờ bổ sung đồ",  color: "bg-yellow-400",  text: "text-yellow-700",  bg: "hover:bg-yellow-50" },
-  { value: "ITEMS_READY",   label: "Đã đủ đồ",        color: "bg-teal-500",    text: "text-teal-700",    bg: "hover:bg-teal-50" },
-  { value: "WASHING",       label: "Đang giặt",        color: "bg-blue-500",    text: "text-blue-700",    bg: "hover:bg-blue-50" },
-  { value: "READY",         label: "Giặt xong",        color: "bg-emerald-500", text: "text-emerald-700", bg: "hover:bg-emerald-50" },
-  { value: "COMPLETED",     label: "Giao khách",       color: "bg-sky-500",     text: "text-sky-700",     bg: "hover:bg-sky-50" },
-  { value: "CANCELLED",     label: "Đã hủy",           color: "bg-red-500",     text: "text-red-600",     bg: "hover:bg-red-50" },
+  { value: "RECEIVED",      label: "Đơn mới",         color: "bg-orange-500", text: "text-orange-700",  bg: "hover:bg-orange-50" },
+  { value: "READY",         label: "Giặt xong",       color: "bg-emerald-500", text: "text-emerald-700", bg: "hover:bg-emerald-50" },
+  { value: "COMPLETED",     label: "Giao khách",      color: "bg-sky-500",     text: "text-sky-700",     bg: "hover:bg-sky-50" },
+  { value: "CANCELLED",     label: "Đã hủy",          color: "bg-red-500",     text: "text-red-600",     bg: "hover:bg-red-50" },
 ];
 
 const formatCurrency = (amount) =>
@@ -127,7 +117,7 @@ const StatusModal = ({ ticket, onStatusChange, onClose }) => {
   );
 };
 
-const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
+const TicketItem = ({ ticket, onStatusChange, onDelete, onPrint, onPayOs, onConfirmPayment }) => {
   const [showStatusModal, setShowStatusModal] = useState(false);
 
   const formatDate = (iso) => {
@@ -158,7 +148,7 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
         {ticket.payment_status === "PAID" ? (
           <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
             <CheckCircle className="w-3.5 h-3.5" />
-            Thanh toán trước ({ticket.payment_method === "BANK" ? "Chuyển khoản" : "Tiền mặt"})
+            Khách đã thanh toán ({ticket.payment_method === "BANK" ? "Chuyển khoản" : "Tiền mặt"})
           </div>
         ) : (
           <div className="text-xs text-slate-400">Chưa thanh toán</div>
@@ -209,29 +199,47 @@ const TicketItem = ({ ticket, onStatusChange, onDelete }) => {
         </span>
       </div>
 
-      <div className="col-span-3 flex items-center justify-end gap-2">
-        <button
-          className="flex items-center gap-1.5 text-[11px] font-bold text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 hover:border-violet-400 px-2.5 py-1.5 rounded-full transition-all"
-          title="In hóa đơn"
-        >
-          <Printer className="w-3.5 h-3.5" />
-          In
-        </button>
-        <button
-          className="flex items-center gap-1.5 text-[11px] font-bold text-sky-600 bg-sky-50 border border-sky-200 hover:bg-sky-100 hover:border-sky-400 px-2.5 py-1.5 rounded-full transition-all"
-          title="Sửa"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-          Sửa
-        </button>
-        <button
-          onClick={() => onDelete(ticket._id)}
-          className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all"
-          title="Xóa"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-          Xóa
-        </button>
+      <div className="col-span-3 flex flex-col items-end justify-center gap-2">
+        <div className="flex items-center gap-2">
+            {!ticket.payment_status || ticket.payment_status === "UNPAID" ? (
+                <>
+                <button
+                    onClick={() => onConfirmPayment(ticket._id)}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 hover:bg-emerald-100 hover:border-emerald-400 px-2.5 py-1.5 rounded-full transition-all"
+                    title="Xác nhận đã thu tiền mặt"
+                >
+                    <CheckCircle className="w-3.5 h-3.5" />
+                    Thu Tiền Mặt
+                </button>
+                <button
+                    onClick={() => onPayOs(ticket)}
+                    className="flex items-center gap-1.5 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 hover:border-blue-400 px-2.5 py-1.5 rounded-full transition-all"
+                    title="Tạo mã thanh toán QR"
+                >
+                    <Clock className="w-3.5 h-3.5" />
+                    Mã PayOS
+                </button>
+                </>
+            ) : null}
+        </div>
+        <div className="flex items-center gap-2 mt-1">
+            <button
+            onClick={() => onPrint(ticket)}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-violet-600 bg-violet-50 border border-violet-200 hover:bg-violet-100 hover:border-violet-400 px-2.5 py-1.5 rounded-full transition-all"
+            title="In hóa đơn chi tiết"
+            >
+            <Printer className="w-3.5 h-3.5" />
+            In Phiếu
+            </button>
+            <button
+            onClick={() => onDelete(ticket._id)}
+            className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all"
+            title="Xóa"
+            >
+            <Trash2 className="w-3.5 h-3.5" />
+            Xóa
+            </button>
+        </div>
       </div>
     </div>
     </>
@@ -251,6 +259,13 @@ export default function DanhSachDoPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Print UI state
+  const [printingTicket, setPrintingTicket] = useState(null);
+
+  // PayOS modal state
+  const [showPayOsModal, setShowPayOsModal] = useState(false);
+  const [payOsTicket, setPayOsTicket] = useState(null);
+
   const loadOrders = () => {
     setLoading(true);
     const params = activeTab ? `?status=${activeTab}` : "";
@@ -265,9 +280,61 @@ export default function DanhSachDoPage() {
   const handleStatusChange = async (id, newStatus) => {
     try {
       await axiosInstance.patch(`/orders/${id}/status`, { status: newStatus });
+      
+      // Mock SMS to customer when status implies "Washed is explicitly done"
+      if (newStatus === "READY") {
+        alert("Đã gửi tin nhắn SMS: 'Đồ của quý khách đã giặt xong, vui lòng đến nhận!'");
+      }
+
       loadOrders();
     } catch {
       alert("Không thể cập nhật trạng thái!");
+    }
+  };
+
+  const handleConfirmPayment = async (id) => {
+    if (!window.confirm("Xác nhận đã thu tiền mặt cho đơn hàng này?")) return;
+    try {
+      await axiosInstance.patch(`/orders/${id}/payment`, {
+        payment_status: "PAID",
+        payment_method: "CASH",
+      });
+      loadOrders();
+    } catch {
+      alert("Lỗi cập nhật thanh toán!");
+    }
+  };
+
+  const handlePayOsClick = (ticket) => {
+    setPayOsTicket(ticket);
+    setShowPayOsModal(true);
+  };
+
+  const handlePayOsSuccess = async () => {
+    if (!payOsTicket) return;
+    try {
+      await axiosInstance.patch(`/orders/${payOsTicket._id}/payment`, {
+        payment_status: "PAID",
+        payment_method: "BANK",
+      });
+      setShowPayOsModal(false);
+      setPayOsTicket(null);
+      loadOrders();
+      alert("Xác nhận thanh toán PayOS thành công!");
+    } catch {
+      alert("Lỗi cập nhật thanh toán!");
+    }
+  };
+
+  const handlePrintClick = async (ticket) => {
+    try {
+      const res = await axiosInstance.get(`/order-items?order_id=${ticket._id}`);
+      setPrintingTicket({ ...ticket, items: res.data });
+      setTimeout(() => {
+        window.print();
+      }, 300);
+    } catch {
+      alert("Không thể lấy thông tin chi tiết đơn hàng để in!");
     }
   };
 
@@ -293,7 +360,79 @@ export default function DanhSachDoPage() {
   }, [orders, searchTerm]);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
+    <>
+    {/* ─── Printable Document ─── */}
+    <div className="hidden print:block p-8 w-full bg-white text-black font-sans">
+      {printingTicket && (
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-6 border-b-2 border-black pb-4">
+            <h1 className="text-3xl font-black uppercase tracking-wider mb-2">HÓA ĐƠN DỊCH VỤ</h1>
+            <p className="text-sm">Store Gặt Sấy | SĐT: 0123.456.789</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div>
+              <p className="mb-1"><span className="font-bold">Mã Hóa Đơn:</span> {printingTicket.order_code}</p>
+              <p className="mb-1"><span className="font-bold">Ngày Nhận:</span> {new Date(printingTicket.created_at).toLocaleString('vi-VN')}</p>
+
+              <p className="mb-1"><span className="font-bold">Nhân Viên:</span> {printingTicket.created_by?.full_name || "—"}</p>
+            </div>
+            <div>
+              <p className="mb-1"><span className="font-bold">Khách Hàng:</span> {printingTicket.customer_id?.full_name}</p>
+              <p className="mb-1"><span className="font-bold">SĐT:</span> {printingTicket.customer_id?.phone}</p>
+              <p className="mb-1"><span className="font-bold">Địa Chỉ:</span> {printingTicket.customer_id?.address || "—"}</p>
+
+            </div>
+          </div>
+
+          <div className="border border-black p-4 mb-6">
+            <p className="text-lg font-bold mb-3 border-b border-black pb-2">CHI TIẾT DỊCH VỤ</p>
+            
+            <table className="w-full text-left mb-4">
+              <thead>
+                <tr className="border-b border-black text-sm">
+                  <th className="py-2">DV</th>
+                  <th className="py-2 text-center">SL</th>
+                  <th className="py-2 text-right">Đơn giá</th>
+                  <th className="py-2 text-right">T.Tiền</th>
+                </tr>
+              </thead>
+              <tbody>
+                {printingTicket.items?.length > 0 ? (
+                  printingTicket.items.map((item, idx) => (
+                    <tr key={idx} className="border-b border-dashed border-gray-300">
+                      <td className="py-2">
+                        {item.service_id?.name || "Dịch vụ"} 
+                        {item.service_id?.unit_id?.name ? ` (${item.service_id.unit_id.name})` : ""}
+                      </td>
+                      <td className="py-2 text-center">{item.quantity}</td>
+                      <td className="py-2 text-right">{formatCurrency(item.price)}</td>
+                      <td className="py-2 text-right font-bold">{formatCurrency(item.subtotal)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="py-2 text-center italic">Không có dịch vụ nào</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            <div className="flex justify-between font-bold text-lg border-t-2 border-black pt-4 mt-2">
+              <span>TỔNG CỘNG:</span>
+              <span>{formatCurrency(printingTicket.total_amount)} đ</span>
+            </div>
+          </div>
+
+          <div className="text-center text-sm italic mt-12">
+            "Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ!"
+          </div>
+        </div>
+      )}
+    </div>
+
+    {/* ─── Main UI ─── */}
+    <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans print:hidden">
       <Header activePage="danh-sach-do" />
 
       <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
@@ -362,6 +501,9 @@ export default function DanhSachDoPage() {
                 ticket={ticket}
                 onStatusChange={handleStatusChange}
                 onDelete={handleDelete}
+                onPrint={handlePrintClick}
+                onPayOs={handlePayOsClick}
+                onConfirmPayment={handleConfirmPayment}
               />
             ))
           ) : (
@@ -379,7 +521,46 @@ export default function DanhSachDoPage() {
       >
         <Plus className="w-8 h-8" />
       </button>
+
+      {/* ─── PayOS Mock Modal ─── */}
+      {showPayOsModal && payOsTicket && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowPayOsModal(false)}>
+          <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center animate-scale-in max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Thanh toán PayOS</h2>
+            <p className="text-sm text-slate-500 mb-6">Mã đơn: <span className="font-bold">{payOsTicket.order_code}</span></p>
+
+            <div className="p-4 bg-white border-2 border-slate-200 rounded-xl shadow-inner mb-6">
+              {/* Dummy QR placeholder */}
+              <div className="w-48 h-48 bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                <span className="material-symbols-outlined text-5xl opacity-50 mb-2">qr_code_2</span>
+                <span className="text-xs font-bold uppercase tracking-wider">QR DEMO PAYOS</span>
+              </div>
+            </div>
+
+            <div className="text-3xl font-black text-blue-600 mb-6">
+              {formatCurrency(payOsTicket.total_amount)} <span className="text-xl underline">đ</span>
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setShowPayOsModal(false)}
+                className="flex-1 py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handlePayOsSuccess}
+                className="flex-1 py-2.5 rounded-xl font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md transition-colors"
+              >
+                Đã Thanh Toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
+    </>
   );
 }
 

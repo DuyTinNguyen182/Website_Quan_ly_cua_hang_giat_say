@@ -27,11 +27,13 @@ const getOrderById = async (req, res) => {
 // POST /api/orders
 const createOrder = async (req, res) => {
   try {
-    const { customer_id, expected_return_date, note, payment_method, shelf_id } = req.body;
+    const { order_code, status, customer_id, expected_return_date, note, payment_method, shelf_id } = req.body;
     if (!customer_id)
       return res.status(400).json({ message: "Khách hàng là bắt buộc" });
 
     const order = await orderService.createOrder({
+      order_code,
+      status,
       customer_id,
       expected_return_date,
       note,

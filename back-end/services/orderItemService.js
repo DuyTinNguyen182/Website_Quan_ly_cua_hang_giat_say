@@ -10,12 +10,18 @@ const recalcOrderTotal = async (order_id) => {
 
 // Lấy tất cả items theo đơn hàng
 const getItemsByOrderId = async (order_id) => {
-  return await OrderItem.find({ order_id }).populate("service_id", "name unit_id");
+  return await OrderItem.find({ order_id }).populate({
+    path: "service_id",
+    populate: { path: "unit_id", select: "name" }
+  });
 };
 
 // Lấy item theo ID
 const getOrderItemById = async (id) => {
-  return await OrderItem.findById(id).populate("service_id", "name unit_id");
+  return await OrderItem.findById(id).populate({
+    path: "service_id",
+    populate: { path: "unit_id", select: "name" }
+  });
 };
 
 // Thêm item vào đơn hàng

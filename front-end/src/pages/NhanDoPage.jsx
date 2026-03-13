@@ -49,6 +49,15 @@ export default function NhanDoPage() {
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  
+  // new customer modal
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [newCustomerFullName, setNewCustomerFullName] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [newCustomerAddress, setNewCustomerAddress] = useState("");
+
+  // Print code
+  const [printedCode, setPrintedCode] = useState("");
 
   const [loading, setLoading] = useState(true);
 
@@ -122,6 +131,42 @@ export default function NhanDoPage() {
     navigate("/login");
   };
 
+  /* --- print code --- */
+  const handlePrintCode = () => {
+    let code = printedCode;
+    if (!code) {
+      code = Math.floor(100000 + Math.random() * 900000).toString();
+      setPrintedCode(code);
+    }
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  };
+
+  /* --- add customer --- */
+  const handleAddCustomer = async () => {
+    if (!newCustomerFullName || !newCustomerPhone) {
+      alert("Vui lòng nhập tên và số điện thoại khách hàng!");
+      return;
+    }
+    try {
+      const res = await axiosInstance.post("/customers", {
+        full_name: newCustomerFullName,
+        phone: newCustomerPhone,
+        address: newCustomerAddress,
+      });
+      setSelectedCustomer(res.data);
+      setCustomerSearch("");
+      setIsAddCustomerModalOpen(false);
+      setNewCustomerFullName("");
+      setNewCustomerPhone("");
+      setNewCustomerAddress("");
+      alert("Tạo khách hàng mới thành công!");
+    } catch (err) {
+      alert(err.response?.data?.message || "Lỗi khi tạo khách hàng!");
+    }
+  };
+
   /* --- reset form --- */
   const resetForm = () => {
     setSelectedItems([]);
@@ -133,16 +178,21 @@ export default function NhanDoPage() {
     setSelectedShelf(null);
     setSelectedCustomer(null);
     setCustomerSearch("");
+    setPrintedCode("");
   };
 
   /* --- save order --- */
   const handleSave = async (print = false) => {
     if (selectedItems.length === 0) return;
     if (!selectedCustomer) { alert("Vui lòng chọn khách hàng!"); return; }
+    if (!printedCode) { alert("Vui lòng in phiếu mã đơn trước khi lưu!"); return; }
+
     setSubmitting(true);
     try {
       const shelfObj = shelves.find((s) => s.name === selectedShelf);
       const orderPayload = {
+        order_code: printedCode,
+        status: "RECEIVED", // Đã đủ đồ
         customer_id: selectedCustomer._id,
         payment_method: "CASH",
         payment_status: isPrepaid ? "PAID" : "UNPAID",
@@ -151,7 +201,7 @@ export default function NhanDoPage() {
         created_by: user.id,
       };
       const orderRes = await axiosInstance.post("/orders", orderPayload);
-      const orderId = orderRes.data._id;
+      const orderId = orderRes.data.order._id || orderRes.data._id;
 
       await Promise.all(
         selectedItems.map((item) =>
@@ -166,7 +216,10 @@ export default function NhanDoPage() {
 
       resetForm();
       if (print) navigate("/danh-sach-do");
-      else alert("Lưu phiếu thành công!");
+      else {
+        alert("Lưu thao tác thành công!");
+        navigate("/danh-sach-do");
+      }
     } catch (err) {
       alert(err.response?.data?.message || "Lỗi khi tạo phiếu!");
     } finally {
@@ -175,7 +228,24 @@ export default function NhanDoPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
+    <>
+    {/* ─── Printable Code ─── */}
+    <div className="hidden print:flex flex-col items-center justify-center p-8 w-full h-screen bg-white">
+      <h2 className="text-3xl font-bold mb-8 uppercase tracking-wider">Phiếu Mã Đối Chiếu</h2>
+      <div className="flex w-full max-w-4xl justify-between gap-12">
+        <div className="flex-1 border-4 border-dashed border-gray-400 p-10 flex flex-col items-center">
+            <span className="text-xl font-bold uppercase mb-4 text-gray-500">Liên 1 - Giao Khách</span>
+            <span className="text-7xl font-black">{printedCode}</span>
+        </div>
+        <div className="flex-1 border-4 border-dashed border-gray-400 p-10 flex flex-col items-center">
+            <span className="text-xl font-bold uppercase mb-4 text-gray-500">Liên 2 - Gắn Túi</span>
+            <span className="text-7xl font-black">{printedCode}</span>
+        </div>
+      </div>
+    </div>
+
+    {/* ─── Main UI ─── */}
+    <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans print:hidden">
       <Header activePage="nhan-do" />
 
       {/* ─── Loading skeleton ─── */}
@@ -358,7 +428,7 @@ export default function NhanDoPage() {
                   <X size={16} />
                 </button>
               ) : (
-                <UserPlus size={20} className="text-gray-400 cursor-pointer hover:text-gray-600" />
+                <UserPlus size={20} onClick={() => setIsAddCustomerModalOpen(true)} className="text-gray-400 cursor-pointer hover:text-gray-600" />
               )}
               {showCustomerDropdown && customers.length > 0 && (
                 <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
@@ -456,7 +526,7 @@ export default function NhanDoPage() {
                 />
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer">
+              {/* <label className="flex items-center gap-3 cursor-pointer">
                 <div
                   className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isPrepaid ? "border-accent-blue bg-accent-blue" : "border-accent-blue bg-white"}`}
                   onClick={() => setIsPrepaid(!isPrepaid)}
@@ -464,9 +534,9 @@ export default function NhanDoPage() {
                   {isPrepaid && <Check size={12} strokeWidth={3} className="text-white" />}
                 </div>
                 <span className="text-xs font-semibold text-gray-600">
-                  Khách thanh toán trước
+                  Khách đã thanh toán
                 </span>
-              </label>
+              </label> */}
             </div>
 
             {/* Storage selection */}
@@ -502,11 +572,11 @@ export default function NhanDoPage() {
           <div className="p-3 bg-gray-50 border-t border-gray-100 flex gap-2 shrink-0">
             <button
               disabled={submitting}
-              onClick={() => handleSave(true)}
+              onClick={handlePrintCode}
               className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 bg-accent-blue text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
             >
               <Printer size={18} />
-              In Phiếu
+              In Phiếu Mã
             </button>
             <button
               disabled={submitting}
@@ -514,7 +584,7 @@ export default function NhanDoPage() {
               className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 bg-accent-green text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
             >
               <Save size={18} />
-              {submitting ? "Đang lưu..." : "Lưu Phiếu"}
+              {submitting ? "Đang lưu..." : "Lưu Đơn Hàng"}
             </button>
           </div>
         </div>
@@ -582,7 +652,64 @@ export default function NhanDoPage() {
         </div>
       )}
       </div>{/* end main UI wrapper */}
+      {/* ─── Add Customer Modal ─── */}
+      {isAddCustomerModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setIsAddCustomerModalOpen(false)}>
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-[400px] flex flex-col overflow-hidden animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-accent-blue py-3 px-5 flex items-center justify-between">
+              <h3 className="text-white font-bold text-base">Thêm Khách Hàng Tuyến</h3>
+              <button onClick={() => setIsAddCustomerModalOpen(false)} className="text-white/80 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Tên khách hàng (*)</label>
+                <input
+                  type="text"
+                  value={newCustomerFullName}
+                  onChange={(e) => setNewCustomerFullName(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-accent-blue focus:ring-1 focus:ring-accent-blue outline-none"
+                  placeholder="Nhập tên..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Số điện thoại (*)</label>
+                <input
+                  type="text"
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-accent-blue focus:ring-1 focus:ring-accent-blue outline-none"
+                  placeholder="Nhập SĐT..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Địa chỉ</label>
+                <input
+                  type="text"
+                  value={newCustomerAddress}
+                  onChange={(e) => setNewCustomerAddress(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-accent-blue focus:ring-1 focus:ring-accent-blue outline-none"
+                  placeholder="Nhập địa chỉ..."
+                />
+              </div>
+              <button
+                onClick={handleAddCustomer}
+                className="mt-2 w-full py-2 bg-accent-green text-white font-bold rounded hover:opacity-90"
+              >
+                Lưu Khách Hàng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Print Code Modal ─── */}
     </div>
+    </>
   );
 }
 

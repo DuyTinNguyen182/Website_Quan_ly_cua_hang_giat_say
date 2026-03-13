@@ -17,6 +17,8 @@ const getAllOrders = async ({ status, payment_status, customer_id, search } = {}
 
   let query = Order.find(filter)
     .populate("customer_id", "full_name phone address")
+    .populate("created_by", "full_name")
+    .populate("shelf_id", "name");
 
   return await query;
 };
@@ -31,6 +33,8 @@ const getOrderById = async (id) => {
 
 // Tạo đơn hàng mới
 const createOrder = async ({
+  order_code,
+  status,
   customer_id,
   expected_return_date,
   note,
@@ -38,12 +42,12 @@ const createOrder = async ({
   shelf_id,
   created_by,
 }) => {
-  const order_code = generateOrderCode();
+  const final_order_code = order_code || generateOrderCode();
   const order = new Order({
-    order_code,
+    order_code: final_order_code,
     customer_id,
     total_amount: 0,
-    status: "PENDING_ITEMS",
+    status: status || "PENDING_ITEMS",
     payment_status: "UNPAID",
     payment_method,
     expected_return_date,
