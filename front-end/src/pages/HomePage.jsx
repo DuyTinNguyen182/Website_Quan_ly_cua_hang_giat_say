@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -66,6 +66,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [time, setTime] = useState(new Date());
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const greeting = getGreeting();
 
   useEffect(() => {
@@ -219,7 +220,7 @@ export default function HomePage() {
               <FeatureCard icon="admin_panel_settings" title="Phân Quyền" description="Quản lý & phân quyền nhân viên"
                 iconColor="text-rose-600" iconBg="bg-rose-50" accentColor="bg-rose-400" delay="delay-600" />
             </div>
-            <div onClick={handleLogout} className="group">
+            <div onClick={() => setShowLogoutConfirm(true)} className="group">
               <FeatureCard icon="logout" title="Đăng Xuất" description="Rời khỏi hệ thống" isLogout={true} delay="delay-700" />
             </div>
           </div>
@@ -227,6 +228,39 @@ export default function HomePage() {
       </main>
 
       <Footer />
+
+      {/* ─── Logout Confirmation Modal ─── */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+             onClick={() => setShowLogoutConfirm(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 animate-scale-in"
+               onClick={(e) => e.stopPropagation()}>
+            {/* Icon */}
+            <div className="flex flex-col items-center pt-8 pb-4 px-6">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-[32px] text-red-500">logout</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">Xác nhận đăng xuất</h3>
+              <p className="text-sm text-gray-500 text-center">Bạn có chắc muốn đăng xuất khỏi hệ thống không?</p>
+            </div>
+            {/* Buttons */}
+            <div className="flex gap-3 px-6 pb-6 pt-2">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-600 transition-colors"
+              >
+                Đăng xuất
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
