@@ -611,17 +611,25 @@ export default function NhanDoPage() {
           {/* Bottom actions */}
           <div className="p-3 bg-gray-50 border-t border-gray-100 flex gap-2 shrink-0">
             <button
-              disabled={submitting}
+              disabled={submitting || !!printedCode}
               onClick={handlePrintCode}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 bg-accent-blue text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 ${
+                !!printedCode
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-accent-blue text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
+              }`}
             >
-              <Printer size={18} />
-              In Phiếu Mã
+              {!!printedCode ? <Check size={18} /> : <Printer size={18} />}
+              {!!printedCode ? "Đã In Phiếu" : "In Phiếu Mã"}
             </button>
             <button
-              disabled={submitting}
+              disabled={submitting || !printedCode || !selectedCustomer || selectedItems.length === 0}
               onClick={() => handleSave(false)}
-              className="flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 bg-accent-green text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-xs font-bold rounded-md transition-all duration-200 ${
+                (!printedCode || !selectedCustomer || selectedItems.length === 0)
+                  ? "bg-gray-400 text-white cursor-not-allowed"
+                  : "bg-accent-green text-white hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
+              }`}
             >
               <Save size={18} />
               {submitting ? "Đang lưu..." : "Lưu Đơn Hàng"}

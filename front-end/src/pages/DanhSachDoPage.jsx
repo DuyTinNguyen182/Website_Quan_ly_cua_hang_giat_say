@@ -281,9 +281,8 @@ export default function DanhSachDoPage() {
     try {
       await axiosInstance.patch(`/orders/${id}/status`, { status: newStatus });
       
-      // Mock SMS to customer when status implies "Washed is explicitly done"
       if (newStatus === "READY") {
-        alert("Đã gửi tin nhắn SMS: 'Đồ của quý khách đã giặt xong, vui lòng đến nhận!'");
+        alert("Đã cập nhật trạng thái và hệ thống đang tự động gửi SMS thông báo cho khách hàng!");
       }
 
       loadOrders();
