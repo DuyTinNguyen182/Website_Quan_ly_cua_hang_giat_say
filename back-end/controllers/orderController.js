@@ -1,11 +1,11 @@
 const orderService = require("../services/orderService");
 const orderItemService = require("../services/orderItemService");
 
-// GET /api/orders?status=RECEIVED&payment_status=UNPAID&customer_id=...
+// GET /api/orders?status=RECEIVED&payment_status=UNPAID&customer_id=...&from=...&to=...
 const getAllOrders = async (req, res) => {
   try {
-    const { status, payment_status, customer_id } = req.query;
-    const orders = await orderService.getAllOrders({ status, payment_status, customer_id });
+    const { status, payment_status, customer_id, from, to } = req.query;
+    const orders = await orderService.getAllOrders({ status, payment_status, customer_id, from, to });
     res.json(orders);
   } catch (err) {
     res.status(500).json({ message: err.message });

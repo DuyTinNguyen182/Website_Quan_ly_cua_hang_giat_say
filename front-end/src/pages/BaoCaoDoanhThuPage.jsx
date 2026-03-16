@@ -208,56 +208,18 @@ export default function BaoCaoDoanhThuPage() {
     const { from, to } = dateRange;
     const year = new Date(from).getFullYear();
 
-    Promise.all([
-      axiosInstance.get(`/transactions?type=INCOME&from=${from}&to=${to}`),
-      axiosInstance.get(`/transactions?type=EXPENSE&from=${from}&to=${to}`),
-      axiosInstance.get(`/orders?from=${from}&to=${to}`).catch(() => ({ data: [] })),
-      axiosInstance.get(`/order-items?from=${from}&to=${to}`).catch(() => ({ data: [] })),
-    ])
-      .then(([incRes, expRes, ordersRes, itemsRes]) => {
-        // Monthly bar chart buckets
-        const buckets = buildEmptyMonths(year);
-        incRes.data.forEach((t) => {
-          const m = new Date(t.transaction_date || t.created_at).getMonth();
-          if (buckets[m]) buckets[m].revenue += t.amount;
+    axiosInstance.get(`/reports/revenue?from=${from}&to=${to}`)
+      .then((res) => {
+        const data = res.data;
+        setMonthlyData(data.monthlyData || buildEmptyMonths(year));
+        setOrderStatusData(data.orderStatusData || []);
+        setSummaryStats(data.summaryStats || {
+          totalOrders: 0, totalAmount: 0,
+          paidOrders: 0, paidAmount: 0,
+          unpaidActiveOrders: 0, unpaidActiveAmount: 0,
+          debtOrders: 0, debtAmount: 0,
         });
-        expRes.data.forEach((t) => {
-          const m = new Date(t.transaction_date || t.created_at).getMonth();
-          if (buckets[m]) buckets[m].expense += t.amount;
-        });
-        setMonthlyData(buckets);
-
-        // Order status distribution
-        const orders = ordersRes.data || [];
-        const statusCounts = {};
-        orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
-        setOrderStatusData(ALL_STATUSES.map((s) => ({ status: s, count: statusCounts[s] || 0 })));
-
-        // 4 summary cards
-        const totalOrders = orders.length;
-        const totalAmount = orders.reduce((s, o) => s + (o.total_amount || 0), 0);
-        const paid = orders.filter((o) => o.payment_status === "PAID");
-        const paidOrders = paid.length;
-        const paidAmount = paid.reduce((s, o) => s + (o.total_amount || 0), 0);
-        const unpaidActive = orders.filter((o) => o.payment_status !== "PAID" && o.status !== "CANCELLED" && o.status !== "COMPLETED");
-        const unpaidActiveOrders = unpaidActive.length;
-        const unpaidActiveAmount = unpaidActive.reduce((s, o) => s + (o.total_amount || 0), 0);
-        const debt = orders.filter((o) => o.payment_status !== "PAID" && o.status === "COMPLETED");
-        const debtOrders = debt.length;
-        const debtAmount = debt.reduce((s, o) => s + (o.total_amount || 0), 0);
-        setSummaryStats({ totalOrders, totalAmount, paidOrders, paidAmount, unpaidActiveOrders, unpaidActiveAmount, debtOrders, debtAmount });
-
-        // Top services by quantity
-        const svcCounts = {};
-        (itemsRes.data || []).forEach((item) => {
-          const name = item.service_id?.name ?? "Khác";
-          svcCounts[name] = (svcCounts[name] || 0) + (Number(item.quantity) || 1);
-        });
-        const top = Object.entries(svcCounts)
-          .map(([name, count]) => ({ name, count }))
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 10);
-        setTopServices(top);
+        setTopServices(data.topServices || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));

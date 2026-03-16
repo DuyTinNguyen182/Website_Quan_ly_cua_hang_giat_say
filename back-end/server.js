@@ -11,6 +11,7 @@ const serviceRoute = require("./routes/serviceRoute");
 const transactionRoute = require("./routes/transactionRoute");
 const orderRoute = require("./routes/orderRoute");
 const orderItemRoute = require("./routes/orderItemRoute");
+const reportRoute = require("./routes/reportRoute");
 
 connectDB();
 
@@ -34,6 +35,7 @@ app.use("/api/services", serviceRoute);
 app.use("/api/transactions", transactionRoute);
 app.use("/api/orders", orderRoute);
 app.use("/api/order-items", orderItemRoute);
+app.use("/api/reports", reportRoute);
 
 const PORT = process.env.PORT || 5000;
 

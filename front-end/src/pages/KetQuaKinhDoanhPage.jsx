@@ -30,7 +30,15 @@ export default function KetQuaKinhDoanhPage() {
   const [activeTab, setActiveTab] = useState("TẤT CẢ");
   const tabs = ["TẤT CẢ", "TIỀN MẶT", "CHUYỂN KHOẢN"];
 
-  const [data, setData] = useState({ income: 0, expense: 0, unpaid: 0 });
+  const [data, setData] = useState({
+    previousBalance: 0,
+    periodServiceIncome: 0,
+    periodOtherIncome: 0,
+    periodExpense: 0,
+    periodUnpaidService: 0,
+    totalIncome: 0,
+    currentBalance: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,31 +48,26 @@ export default function KetQuaKinhDoanhPage() {
     const from = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
     const to = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59).toISOString();
 
-    Promise.all([
-      axiosInstance.get(`/transactions?type=INCOME&from=${from}&to=${to}`),
-      axiosInstance.get(`/transactions?type=EXPENSE&from=${from}&to=${to}`),
-      axiosInstance.get(`/orders?payment_status=UNPAID`),
-    ])
-      .then(([incRes, expRes, unpaidRes]) => {
-        const income = incRes.data.reduce((s, t) => s + t.amount, 0);
-        const expense = expRes.data.reduce((s, t) => s + t.amount, 0);
-        const unpaid = unpaidRes.data.reduce((s, o) => s + o.total_amount, 0);
-        setData({ income, expense, unpaid });
+    axiosInstance.get(`/reports/fund?from=${from}&to=${to}`)
+      .then((res) => {
+        setData(res.data);
       })
-      .catch(() => {})
+      .catch((err) => console.error("Error fetching fund report", err))
       .finally(() => setLoading(false));
   }, [user]);
 
-  const soDuTruoc = 0;
-  const soDuHienTai = soDuTruoc + data.income - data.expense;
-  const tongQuy = soDuHienTai + data.unpaid;
+  const soDuTruoc = data.previousBalance || 0;
+  const thuHomNay = data.totalIncome || 0;
+  const chiHomNay = data.periodExpense || 0;
+  const soDuHienTai = data.currentBalance || 0;
+  const tongQuy = soDuHienTai + (data.periodUnpaidService || 0);
 
   const detailRows = [
-    { label: "1. Tiền thu từ dịch vụ giặt ủi", amount: data.income, hasDetail: true },
-    { label: "2. Các khoản thu khác", amount: 0, hasDetail: true },
-    { label: "3. Các khoản chi phát sinh", amount: data.expense, hasDetail: true },
-    { label: "4. Tiền chưa thu từ dịch vụ giặt ủi", amount: data.unpaid, hasDetail: true },
-];
+    { label: "1. Tiền thu từ dịch vụ giặt ủi", amount: data.periodServiceIncome || 0, hasDetail: false },
+    { label: "2. Các khoản thu khác", amount: data.periodOtherIncome || 0, hasDetail: false },
+    { label: "3. Các khoản chi phát sinh", amount: data.periodExpense || 0, hasDetail: false },
+    { label: "4. Tiền chưa thu từ dịch vụ giặt ủi", amount: data.periodUnpaidService || 0, hasDetail: false },
+  ];
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
@@ -81,7 +84,7 @@ export default function KetQuaKinhDoanhPage() {
         </button>
 
         {/* Segmented control */}
-        <div className="inline-flex bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
+        {/* <div className="inline-flex bg-white rounded-full p-0.5 shadow-sm border border-gray-100">
           {tabs.map((tab) => (
             <button
               key={tab}
@@ -98,12 +101,12 @@ export default function KetQuaKinhDoanhPage() {
               {tab}
             </button>
           ))}
-        </div>
+        </div> */}
 
-        <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
+        {/* <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
           <Filter className="w-4 h-4" />
           <span className="text-xs font-bold uppercase">Lọc</span>
-        </button>
+        </button> */}
       </div>
 
       {/* ─── Main ─── */}
@@ -114,7 +117,7 @@ export default function KetQuaKinhDoanhPage() {
             <SummaryCard
               icon="trending_up"
               title="THU HÔM NAY"
-              amount={loading ? "—" : `+${formatCurrency(data.income)}`}
+              amount={loading ? "—" : `+${formatCurrency(thuHomNay)}`}
               bgClass="bg-accent-green"
               textClass="text-accent-green"
               delay="delay-100"
@@ -122,7 +125,7 @@ export default function KetQuaKinhDoanhPage() {
             <SummaryCard
               icon="trending_down"
               title="CHI HÔM NAY"
-              amount={loading ? "—" : `-${formatCurrency(data.expense)}`}
+              amount={loading ? "—" : `-${formatCurrency(chiHomNay)}`}
               bgClass="bg-accent-orange"
               textClass="text-accent-orange"
               delay="delay-200"

@@ -45,6 +45,8 @@ export default function KhachHangPage() {
       (c.address && c.address.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const totalDebt = customers.reduce((sum, c) => sum + (c.stats?.debt || 0), 0);
+
   const openAdd = () => {
     setForm({ full_name: "", phone: "", address: "", note: "" });
     setError("");
@@ -224,7 +226,7 @@ export default function KhachHangPage() {
           <div className="flex items-center gap-3 bg-white border border-gray-200 px-5 py-3 rounded-full shadow-sm">
             <div>
               <div className="font-bold text-sm leading-tight text-gray-700">
-                Công nợ khách: <span className="text-nav-bg">0</span>
+                Công nợ khách: <span className="text-nav-bg">{totalDebt.toLocaleString('vi-VN')}</span>
               </div>
               <div className="text-xs text-gray-400 leading-tight">Tổng tiền công nợ của khách</div>
             </div>
@@ -299,17 +301,17 @@ export default function KhachHangPage() {
 
                   {/* Ghé gần đây */}
                   <div className="text-[12px] text-gray-500 md:pt-0.5">
-                    <span>-</span>
+                    <span>{c.stats?.lastVisit ? new Date(c.stats.lastVisit).toLocaleDateString('vi-VN') : "-"}</span>
                   </div>
 
                   {/* Đã chi tiêu */}
-                  <div className="text-[12px] text-gray-500 md:pt-0.5">
-                    <span>-</span>
+                  <div className="text-[12px] text-gray-500 md:pt-0.5 font-medium text-accent-blue">
+                    <span>{c.stats?.totalSpent ? c.stats.totalSpent.toLocaleString('vi-VN') : "-"}</span>
                   </div>
 
                   {/* Công nợ */}
-                  <div className="text-[12px] text-gray-500 md:pt-0.5">
-                    <span>-</span>
+                  <div className="text-[12px] md:pt-0.5 font-bold text-accent-orange">
+                    <span>{c.stats?.debt ? c.stats.debt.toLocaleString('vi-VN') : "-"}</span>
                   </div>
 
                   {/* Ghi chú */}

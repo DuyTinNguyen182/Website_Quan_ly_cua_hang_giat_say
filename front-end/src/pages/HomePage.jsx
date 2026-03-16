@@ -216,10 +216,10 @@ export default function HomePage() {
               <FeatureCard icon="history_edu" title="Nhật Ký" description="Quản lý lịch sử thao tác"
                 iconColor="text-slate-600" iconBg="bg-slate-100" accentColor="bg-slate-400" delay="delay-500" />
             </div>
-            <div onClick={() => navigate("/phan-quyen")} className="group">
+            {/* <div onClick={() => navigate("/phan-quyen")} className="group">
               <FeatureCard icon="admin_panel_settings" title="Phân Quyền" description="Quản lý & phân quyền nhân viên"
                 iconColor="text-rose-600" iconBg="bg-rose-50" accentColor="bg-rose-400" delay="delay-600" />
-            </div>
+            </div> */}
             <div onClick={() => setShowLogoutConfirm(true)} className="group">
               <FeatureCard icon="logout" title="Đăng Xuất" description="Rời khỏi hệ thống" isLogout={true} delay="delay-700" />
             </div>

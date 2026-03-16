@@ -1,12 +1,16 @@
 const orderItemService = require("../services/orderItemService");
 
-// GET /api/order-items?order_id=...
+// GET /api/order-items?order_id=...&from=...&to=...
 const getItemsByOrderId = async (req, res) => {
   try {
-    const { order_id } = req.query;
-    if (!order_id)
-      return res.status(400).json({ message: "order_id là bắt buộc" });
-    const items = await orderItemService.getItemsByOrderId(order_id);
+    const { order_id, from, to } = req.query;
+    if (order_id) {
+      const items = await orderItemService.getItemsByOrderId(order_id);
+      return res.json(items);
+    }
+    
+    // Nếu không có order_id, có thể lấy tất cả để báo cáo
+    const items = await orderItemService.getAllOrderItems({ from, to });
     res.json(items);
   } catch (err) {
     res.status(500).json({ message: err.message });

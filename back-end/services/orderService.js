@@ -8,17 +8,23 @@ const generateOrderCode = () => {
   return `DH${date}-${rand}`;
 };
 
-// Lấy tất cả đơn hàng (có lọc theo status, payment_status, customer_id)
-const getAllOrders = async ({ status, payment_status, customer_id, search } = {}) => {
+// Lấy tất cả đơn hàng (có lọc theo status, payment_status, customer_id, khoảng ngày)
+const getAllOrders = async ({ status, payment_status, customer_id, search, from, to } = {}) => {
   const filter = {};
   if (status) filter.status = status;
   if (payment_status) filter.payment_status = payment_status;
   if (customer_id) filter.customer_id = customer_id;
+  if (from || to) {
+    filter.created_at = {};
+    if (from) filter.created_at.$gte = new Date(from);
+    if (to) filter.created_at.$lte = new Date(to);
+  }
 
   let query = Order.find(filter)
     .populate("customer_id", "full_name phone address")
     .populate("created_by", "full_name")
-    .populate("shelf_id", "name");
+    .populate("shelf_id", "name")
+    .sort({ created_at: -1 });
 
   return await query;
 };

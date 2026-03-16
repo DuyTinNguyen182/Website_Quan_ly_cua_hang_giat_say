@@ -16,6 +16,30 @@ const getItemsByOrderId = async (order_id) => {
   });
 };
 
+// Lấy tất cả order items, có thể lọc qua order dates (tạm thời không filter được dates trừ khi dùng aggregation nhưng chỉ để báo cáo)
+// Tùy chọn: tìm tất cả Order trong from-to, sau đó tìm items có order_id thuộc danh sách đó
+const getAllOrderItems = async ({ from, to } = {}) => {
+  let orderFilter = {};
+  if (from || to) {
+    orderFilter.created_at = {};
+    if (from) orderFilter.created_at.$gte = new Date(from);
+    if (to) orderFilter.created_at.$lte = new Date(to);
+  }
+  
+  let validOrderIds = [];
+  if (from || to) {
+    const orders = await Order.find(orderFilter).select('_id');
+    validOrderIds = orders.map(o => o._id);
+  }
+
+  const query = (from || to) ? { order_id: { $in: validOrderIds } } : {};
+  
+  return await OrderItem.find(query).populate({
+    path: "service_id",
+    populate: { path: "unit_id", select: "name" }
+  });
+};
+
 // Lấy item theo ID
 const getOrderItemById = async (id) => {
   return await OrderItem.findById(id).populate({
@@ -65,6 +89,7 @@ const deleteItemsByOrderId = async (order_id) => {
 };
 
 module.exports = {
+  getAllOrderItems,
   getItemsByOrderId,
   getOrderItemById,
   createOrderItem,
