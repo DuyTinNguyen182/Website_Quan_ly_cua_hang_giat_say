@@ -81,7 +81,7 @@ const updateOrderStatus = async (id, status) => {
     id,
     { status },
     { new: true, runValidators: true }
-  );
+  ).populate("customer_id", "full_name phone");
 };
 
 // Cập nhật trạng thái thanh toán

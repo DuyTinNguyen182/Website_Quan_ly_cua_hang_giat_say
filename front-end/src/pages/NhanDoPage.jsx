@@ -3,6 +3,7 @@ import { useEffect, useCallback, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
+import { QRCodeSVG } from 'qrcode.react';
 import {
   PlusCircle,
   ChevronDown,
@@ -56,6 +57,10 @@ export default function NhanDoPage() {
   const [newCustomerFullName, setNewCustomerFullName] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [newCustomerAddress, setNewCustomerAddress] = useState("");
+
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState(null);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   // Print code
   const [printedCode, setPrintedCode] = useState("");
@@ -566,17 +571,56 @@ export default function NhanDoPage() {
                 />
               </div>
 
-              {/* <label className="flex items-center gap-3 cursor-pointer">
-                <div
-                  className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isPrepaid ? "border-accent-blue bg-accent-blue" : "border-accent-blue bg-white"}`}
-                  onClick={() => setIsPrepaid(!isPrepaid)}
+              <div className="flex items-center gap-4 mt-2">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <div
+                    className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isPrepaid ? "border-accent-blue bg-accent-blue" : "border-accent-blue bg-white"}`}
+                    onClick={() => setIsPrepaid(!isPrepaid)}
+                  >
+                    {isPrepaid && <Check size={12} strokeWidth={3} className="text-white" />}
+                  </div>
+                  <span className="text-xs font-semibold text-gray-600">
+                    Khách đã thanh toán
+                  </span>
+                </label>
+                
+                <button
+                  type="button"
+                  disabled={isGeneratingQR || selectedItems.length === 0}
+                  onClick={async () => {
+                    if (selectedItems.length === 0) return alert("Vui lòng thêm dịch vụ!");
+                      if (!printedCode) return alert("Vui lòng Bấm In Phiếu Mã hoặc tạo mã phiếu hiển thị trước khi thanh toán!");
+                      setIsGeneratingQR(true);
+                      try {
+                        // Tính tổng tiền
+                        const subtotal = selectedItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+                        const discountAmount = isDiscountPercent ? (subtotal * discount) / 100 : discount;
+                        const totalToPay = subtotal + surcharge - discountAmount;
+                        
+                        const response = await axiosInstance.post('/payments/create-payment-link', {
+                          orderCode: Number(printedCode),
+                          amount: totalToPay,
+                          description: `Thanh toan don hang`,
+                          returnUrl: window.location.href,
+                          cancelUrl: window.location.href
+                        });
+
+                        if (response.data.success) {
+                          setQrCodeData(response.data.qrCode);
+                          setQrModalOpen(true);
+                          setIsPrepaid(true); // Tự động check đã thanh toán nếu mở QR
+                        }
+                    } catch (error) {
+                      alert("Không thể tạo mã QR!");
+                    } finally {
+                      setIsGeneratingQR(false);
+                    }
+                  }}
+                  className="px-3 py-1 bg-accent-blue text-white text-xs font-bold rounded hover:opacity-90 disabled:opacity-50"
                 >
-                  {isPrepaid && <Check size={12} strokeWidth={3} className="text-white" />}
-                </div>
-                <span className="text-xs font-semibold text-gray-600">
-                  Khách đã thanh toán
-                </span>
-              </label> */}
+                  {isGeneratingQR ? "Đang tạo..." : "Tạo mã QR PayOS"}
+                </button>
+              </div>
             </div>
 
             {/* Storage selection */}
@@ -755,7 +799,40 @@ export default function NhanDoPage() {
         </div>
       )}
 
-      {/* ─── Print Code Modal ─── */}
+      {/* ─── Thanh toán QR Modal ─── */}
+      {qrModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-sm overflow-hidden flex flex-col shadow-2xl">
+            <div className="bg-accent-blue text-white px-4 py-3 flex justify-between items-center">
+              <h3 className="font-bold uppercase tracking-wider text-sm">Quét Mã Thanh Toán (PayOS)</h3>
+              <button onClick={() => setQrModalOpen(false)} className="text-white hover:text-red-200">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col items-center">
+              <div className="bg-white p-2 rounded shadow-sm border border-gray-100 flex justify-center w-full">
+                {qrCodeData ? (
+                  <QRCodeSVG value={qrCodeData} size={250} level="H" includeMargin={true} />
+                ) : (
+                  <div className="h-[250px] w-[250px] flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <span className="text-gray-400">Không có dữ liệu QR</span>
+                  </div>
+                )}
+              </div>
+              <p className="mt-4 text-sm font-semibold text-gray-700 text-center">
+                Quét mã để thanh toán đơn hàng
+              </p>
+              <button
+                onClick={() => setQrModalOpen(false)}
+                className="mt-6 w-full py-2 bg-accent-green text-white font-bold rounded hover:opacity-90"
+              >
+                Xác nhận đã thanh toán
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
     </>
   );

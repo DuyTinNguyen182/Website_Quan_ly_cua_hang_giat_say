@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
+import { QRCodeSVG } from 'qrcode.react';
 import {
   Search,
   ChevronLeft,
@@ -265,6 +266,8 @@ export default function DanhSachDoPage() {
   // PayOS modal state
   const [showPayOsModal, setShowPayOsModal] = useState(false);
   const [payOsTicket, setPayOsTicket] = useState(null);
+  const [qrCodeDataList, setQrCodeDataList] = useState(null);
+  const [isGeneratingQRList, setIsGeneratingQRList] = useState(false);
 
   const loadOrders = () => {
     setLoading(true);
@@ -304,9 +307,30 @@ export default function DanhSachDoPage() {
     }
   };
 
-  const handlePayOsClick = (ticket) => {
+  const handlePayOsClick = async (ticket) => {
     setPayOsTicket(ticket);
+    setQrCodeDataList(null);
     setShowPayOsModal(true);
+    setIsGeneratingQRList(true);
+    
+    try {
+      const response = await axiosInstance.post('/payments/create-payment-link', {
+        orderCode: Number(ticket.order_code),
+        amount: ticket.total_amount,
+        description: `Thanh toan don hang`,
+        returnUrl: window.location.href,
+        cancelUrl: window.location.href
+      });
+
+      if (response.data.success) {
+        setQrCodeDataList(response.data.qrCode);
+      }
+    } catch (error) {
+      alert("Không thể tạo mã QR. Vui lòng thử lại!");
+      setShowPayOsModal(false);
+    } finally {
+      setIsGeneratingQRList(false);
+    }
   };
 
   const handlePayOsSuccess = async () => {
@@ -529,12 +553,20 @@ export default function DanhSachDoPage() {
             <p className="text-sm text-slate-500 mb-6">Mã đơn: <span className="font-bold">{payOsTicket.order_code}</span></p>
 
             <div className="p-4 bg-white border-2 border-slate-200 rounded-xl shadow-inner mb-6">
-              {/* Dummy QR placeholder */}
-              <div className="w-48 h-48 bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400">
-                <span className="material-symbols-outlined text-5xl opacity-50 mb-2">qr_code_2</span>
-                <span className="text-xs font-bold uppercase tracking-wider">QR DEMO PAYOS</span>
+                {isGeneratingQRList ? (
+                  <div className="w-48 h-48 bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                    <span className="text-xs font-bold uppercase tracking-wider animate-pulse">Đang tạo mã QR...</span>
+                  </div>
+                ) : qrCodeDataList ? (
+                  <div className="flex items-center justify-center">
+                    <QRCodeSVG value={qrCodeDataList} size={200} level="H" includeMargin={false} />
+                  </div>
+                ) : (
+                  <div className="w-48 h-48 bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400">
+                    <span className="text-xs font-bold uppercase tracking-wider text-red-400">Lỗi không tải được</span>
+                  </div>
+                )}
               </div>
-            </div>
 
             <div className="text-3xl font-black text-blue-600 mb-6">
               {formatCurrency(payOsTicket.total_amount)} <span className="text-xl underline">đ</span>

@@ -68,6 +68,19 @@ const updateOrderStatus = async (req, res) => {
     const order = await orderService.updateOrderStatus(req.params.id, status);
     if (!order)
       return res.status(404).json({ message: "Không tìm thấy đơn hàng" });
+
+    // Gửi tin nhắn nếu trạng thái là "READY" (Giặt xong)
+    if (status === "READY" && order.customer_id && order.customer_id.phone) {
+      const { sendSMS } = require("../utils/smsService");
+      const phone = order.customer_id.phone;
+      const customerName = order.customer_id.full_name || "Quý khách";
+      const orderCode = order.order_code;
+      const message = `Xin chao ${customerName}, don hang ${orderCode} cua ban da giat xong. Vui long den cua hang de nhan do. Cam on!`;
+      
+      // Gửi SMS không block request
+      sendSMS([phone], message).catch(err => console.error("Lỗi gửi tin nhắn:", err));
+    }
+
     res.json({ message: "Cập nhật trạng thái thành công", order });
   } catch (err) {
     res.status(400).json({ message: err.message });
