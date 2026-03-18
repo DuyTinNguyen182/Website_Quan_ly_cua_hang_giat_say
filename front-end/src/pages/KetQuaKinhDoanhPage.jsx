@@ -56,11 +56,11 @@ export default function KetQuaKinhDoanhPage() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  const soDuTruoc = data.previousBalance || 0;
+  const soDuTruoc = 0;
   const thuHomNay = data.totalIncome || 0;
   const chiHomNay = data.periodExpense || 0;
-  const soDuHienTai = data.currentBalance || 0;
-  const tongQuy = soDuHienTai + (data.periodUnpaidService || 0);
+  const soDuHienTai = thuHomNay - chiHomNay;
+  const tongQuy = soDuTruoc + soDuHienTai + (data.periodUnpaidService || 0);
 
   const detailRows = [
     { label: "1. Tiền thu từ dịch vụ giặt ủi", amount: data.periodServiceIncome || 0, hasDetail: false },
@@ -152,7 +152,7 @@ export default function KetQuaKinhDoanhPage() {
               {/* A. Số dư trước */}
               <div className="px-6 py-4 flex items-center justify-between">
                 <span className="font-semibold text-gray-800 text-sm">
-                  A. SỐ DƯ TRƯỚC PHÁT SINH
+                  A. SỐ DƯ TRƯỚC PHÁT SINH TRONG NGÀY
                 </span>
                 <span className="px-3 py-1 bg-gray-100 rounded text-sm font-medium">
                   {formatCurrency(soDuTruoc)}
@@ -179,7 +179,7 @@ export default function KetQuaKinhDoanhPage() {
               {/* B. Số dư hiện tại */}
               <div className="px-6 py-5 flex items-center justify-between bg-gray-50/50">
                 <span className="font-semibold text-gray-800 text-sm">
-                  B. SỐ DƯ HIỆN TẠI = (A) + (1) + (2) - (3)
+                  B. SỐ DƯ HIỆN TẠI TRONG NGÀY = (1) + (2) - (3)
                 </span>
                 <span className="px-4 py-1 bg-gray-100 rounded-md font-bold text-gray-800">
                   {formatCurrency(soDuHienTai)}
@@ -189,7 +189,7 @@ export default function KetQuaKinhDoanhPage() {
               {/* C. Tổng quỹ */}
               <div className="px-6 py-5 flex items-center justify-between bg-gray-50/50">
                 <span className="font-semibold text-gray-800 text-sm">
-                  C. TỔNG QUỸ CỬA HÀNG = (B) + (4)
+                  C. TỔNG QUỸ CỬA HÀNG = (A) + (B) + (4)
                 </span>
                 <span className="px-4 py-1 bg-gray-100 rounded-md font-bold text-gray-800">
                   {formatCurrency(tongQuy)}

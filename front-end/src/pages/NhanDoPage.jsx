@@ -224,6 +224,9 @@ export default function NhanDoPage() {
         customer_id: selectedCustomer._id,
         payment_method: "CASH",
         payment_status: isPrepaid ? "PAID" : "UNPAID",
+        surcharge,
+        discount_type: isDiscountPercent ? "PERCENT" : "FIXED",
+        discount_value: discount,
         note,
         shelf_id: shelfObj?._id ?? undefined,
         created_by: user.id,
@@ -571,7 +574,7 @@ export default function NhanDoPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-4 mt-2">
+              {/* <div className="flex items-center gap-4 mt-2">
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div
                     className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-colors ${isPrepaid ? "border-accent-blue bg-accent-blue" : "border-accent-blue bg-white"}`}
@@ -620,7 +623,7 @@ export default function NhanDoPage() {
                 >
                   {isGeneratingQR ? "Đang tạo..." : "Tạo mã QR PayOS"}
                 </button>
-              </div>
+              </div> */}
             </div>
 
             {/* Storage selection */}

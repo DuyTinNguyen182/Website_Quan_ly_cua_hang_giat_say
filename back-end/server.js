@@ -13,6 +13,9 @@ const orderRoute = require("./routes/orderRoute");
 const orderItemRoute = require("./routes/orderItemRoute");
 const reportRoute = require("./routes/reportRoute");
 const paymentRoute = require("./routes/paymentRoute");
+const systemLogController = require("./controllers/systemLogController");
+const { systemLogMiddleware } = require("./middleware/systemLogMiddleware");
+const { authenticate, isAdmin } = require("./middleware/authMiddleware");
 
 connectDB();
 
@@ -21,6 +24,7 @@ const app = express();
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
+app.use(systemLogMiddleware);
 
 app.get("/", (req, res) => {
     res.send("Backend is running...");
@@ -38,6 +42,7 @@ app.use("/api/orders", orderRoute);
 app.use("/api/order-items", orderItemRoute);
 app.use("/api/reports", reportRoute);
 app.use("/api/payments", paymentRoute);
+app.get("/api/system-logs", authenticate, isAdmin, systemLogController.getSystemLogs);
 
 const PORT = process.env.PORT || 5000;
 

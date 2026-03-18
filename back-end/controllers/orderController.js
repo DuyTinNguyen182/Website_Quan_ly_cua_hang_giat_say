@@ -27,7 +27,19 @@ const getOrderById = async (req, res) => {
 // POST /api/orders
 const createOrder = async (req, res) => {
   try {
-    const { order_code, status, customer_id, expected_return_date, note, payment_method, shelf_id } = req.body;
+    const {
+      order_code,
+      status,
+      customer_id,
+      expected_return_date,
+      note,
+      payment_method,
+      payment_status,
+      shelf_id,
+      surcharge,
+      discount_type,
+      discount_value,
+    } = req.body;
     if (!customer_id)
       return res.status(400).json({ message: "Khách hàng là bắt buộc" });
 
@@ -38,7 +50,11 @@ const createOrder = async (req, res) => {
       expected_return_date,
       note,
       payment_method,
+      payment_status,
       shelf_id,
+      surcharge,
+      discount_type,
+      discount_value,
       created_by: req.user.id,
     });
     res.status(201).json({ message: "Tạo đơn hàng thành công", order });

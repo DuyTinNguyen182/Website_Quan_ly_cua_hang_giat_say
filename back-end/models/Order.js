@@ -12,6 +12,16 @@ const orderSchema = new mongoose.Schema(
 
     total_amount: { type: Number, default: 0 },
 
+    // Thành phần giá trị hóa đơn
+    surcharge: { type: Number, default: 0, min: 0 },
+    discount_type: {
+      type: String,
+      enum: ["PERCENT", "FIXED"],
+      default: "PERCENT",
+    },
+    discount_value: { type: Number, default: 0, min: 0 },
+    discount_amount: { type: Number, default: 0, min: 0 },
+
     status: {
       type: String,
       enum: ["RECEIVED", "PENDING_ITEMS", "ITEMS_READY", "WASHING", "READY", "COMPLETED", "CANCELLED"],

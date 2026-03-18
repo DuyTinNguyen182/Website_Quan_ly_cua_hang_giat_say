@@ -3,9 +3,29 @@ const Order = require("../models/Order");
 
 // Tính lại tổng tiền đơn hàng
 const recalcOrderTotal = async (order_id) => {
-  const items = await OrderItem.find({ order_id });
-  const total = items.reduce((sum, item) => sum + item.subtotal, 0);
-  await Order.findByIdAndUpdate(order_id, { total_amount: total });
+  const [items, order] = await Promise.all([
+    OrderItem.find({ order_id }),
+    Order.findById(order_id),
+  ]);
+
+  if (!order) return;
+
+  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const surcharge = Math.max(Number(order.surcharge || 0), 0);
+  const discountType = order.discount_type === "FIXED" ? "FIXED" : "PERCENT";
+  const discountValue = Math.max(Number(order.discount_value || 0), 0);
+
+  const discountAmount =
+    discountType === "FIXED"
+      ? Math.min(discountValue, subtotal)
+      : Math.round((subtotal * Math.min(discountValue, 100)) / 100);
+
+  const total = Math.max(subtotal + surcharge - discountAmount, 0);
+
+  await Order.findByIdAndUpdate(order_id, {
+    discount_amount: discountAmount,
+    total_amount: total,
+  });
 };
 
 // Lấy tất cả items theo đơn hàng

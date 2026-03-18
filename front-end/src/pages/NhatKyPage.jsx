@@ -2,7 +2,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
-import { getActivityLogs, seedDemoLogs } from "../utils/activityLog";
+import axiosInstance from "../api/axiosInstance";
 
 // ─── Màu badge theo hành động ────────────────────────────
 const ACTION_STYLE = {
@@ -51,11 +51,14 @@ export default function NhatKyPage() {
     if (!user) navigate("/login");
   }, [user, navigate]);
 
-  // Seed demo + load
+  // Load logs from backend
   useEffect(() => {
-    seedDemoLogs();
-    setLogs(getActivityLogs());
-  }, []);
+    if (!user) return;
+    axiosInstance
+      .get("/system-logs?limit=500")
+      .then((res) => setLogs(res.data || []))
+      .catch(() => setLogs([]));
+  }, [user]);
 
   // Lọc theo search
   const filtered = useMemo(() => {

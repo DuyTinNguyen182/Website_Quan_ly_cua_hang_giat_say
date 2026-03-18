@@ -1,4 +1,42 @@
 const Order = require("../models/Order");
+const OrderItem = require("../models/OrderItem");
+
+const toNonNegativeNumber = (value) => {
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+};
+
+const calcDiscountAmount = ({ subtotal, discount_type, discount_value }) => {
+  if (discount_type === "FIXED") {
+    return Math.min(toNonNegativeNumber(discount_value), subtotal);
+  }
+
+  const percent = Math.min(toNonNegativeNumber(discount_value), 100);
+  return Math.round((subtotal * percent) / 100);
+};
+
+const recalcOrderTotalByOrderId = async (order_id) => {
+  const [order, items] = await Promise.all([
+    Order.findById(order_id),
+    OrderItem.find({ order_id }).select("subtotal"),
+  ]);
+
+  if (!order) return null;
+
+  const subtotal = items.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+  const surcharge = toNonNegativeNumber(order.surcharge);
+  const discount_amount = calcDiscountAmount({
+    subtotal,
+    discount_type: order.discount_type,
+    discount_value: order.discount_value,
+  });
+  const total_amount = Math.max(subtotal + surcharge - discount_amount, 0);
+
+  order.discount_amount = discount_amount;
+  order.total_amount = total_amount;
+  await order.save();
+  return order;
+};
 
 // Tạo mã đơn hàng tự động: DH + YYYYMMDD + 4 số ngẫu nhiên
 const generateOrderCode = () => {
@@ -44,33 +82,69 @@ const createOrder = async ({
   customer_id,
   expected_return_date,
   note,
+  payment_status,
   payment_method,
   shelf_id,
+  surcharge,
+  discount_type,
+  discount_value,
   created_by,
 }) => {
   const final_order_code = order_code || generateOrderCode();
+  const normalizedDiscountType = discount_type === "FIXED" ? "FIXED" : "PERCENT";
+  const normalizedDiscountValue = toNonNegativeNumber(discount_value);
+
   const order = new Order({
     order_code: final_order_code,
     customer_id,
     total_amount: 0,
     status: status || "PENDING_ITEMS",
-    payment_status: "UNPAID",
+    payment_status: payment_status || "UNPAID",
     payment_method,
     expected_return_date,
     note,
     shelf_id: shelf_id || null,
+    surcharge: toNonNegativeNumber(surcharge),
+    discount_type: normalizedDiscountType,
+    discount_value: normalizedDiscountValue,
+    discount_amount: 0,
     created_by,
   });
   return await order.save();
 };
 
 // Cập nhật thông tin đơn hàng
-const updateOrder = async (id, { expected_return_date, note, shelf_id, payment_method }) => {
-  return await Order.findByIdAndUpdate(
-    id,
-    { expected_return_date, note, shelf_id, payment_method },
-    { new: true, runValidators: true }
-  )
+const updateOrder = async (
+  id,
+  {
+    expected_return_date,
+    note,
+    shelf_id,
+    payment_method,
+    surcharge,
+    discount_type,
+    discount_value,
+    payment_status,
+  }
+) => {
+  const payload = {
+    expected_return_date,
+    note,
+    shelf_id,
+    payment_method,
+    payment_status,
+  };
+
+  if (surcharge !== undefined) payload.surcharge = toNonNegativeNumber(surcharge);
+  if (discount_value !== undefined) payload.discount_value = toNonNegativeNumber(discount_value);
+  if (discount_type !== undefined) payload.discount_type = discount_type === "FIXED" ? "FIXED" : "PERCENT";
+
+  const updated = await Order.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
+  if (!updated) return null;
+
+  await recalcOrderTotalByOrderId(id);
+
+  return await Order.findById(id)
     .populate("customer_id", "full_name phone")
     .populate("shelf_id", "name");
 };
@@ -106,4 +180,5 @@ module.exports = {
   updateOrderStatus,
   updatePaymentStatus,
   deleteOrder,
+  recalcOrderTotalByOrderId,
 };

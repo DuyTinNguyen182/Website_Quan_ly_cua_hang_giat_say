@@ -1,4 +1,5 @@
 const authService = require("../services/authService");
+const systemLogService = require("../services/systemLogService");
 
 // POST /auth/login
 const login = async (req, res) => {
@@ -15,6 +16,19 @@ const login = async (req, res) => {
       httpOnly: true,
       maxAge: 8 * 60 * 60 * 1000, // 8 giờ
     });
+
+    systemLogService.createLog({
+      module: "Hệ thống",
+      action: "Đăng nhập",
+      description: `Đăng nhập hệ thống thành công (${user.full_name})`,
+      method: "POST",
+      path: "/api/auth/login",
+      status_code: 200,
+      user_id: user._id,
+      staff_name: user.full_name,
+      role: user.role,
+      ip: req.ip,
+    }).catch(() => {});
 
     res.json({ message: "Đăng nhập thành công", user });
   } catch (err) {
