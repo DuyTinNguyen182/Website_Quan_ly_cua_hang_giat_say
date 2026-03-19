@@ -17,6 +17,14 @@ import {
 } from "lucide-react";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
+const defaultTransactionDate = () => new Date().toISOString().slice(0, 10);
+
+const getDateInputValue = (value) => {
+  if (!value) return defaultTransactionDate();
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return defaultTransactionDate();
+  return d.toISOString().slice(0, 10);
+};
 
 const formatDate = (iso) => {
   if (!iso) return "—";
@@ -41,8 +49,14 @@ export default function ThuChiPage() {
   const [searchTerm, setSearchTerm] = useState("");
   // modal state for creating new transaction
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: new Date().toISOString().slice(0, 10) });
+  const [editingRecordId, setEditingRecordId] = useState(null);
+  const [form, setForm] = useState({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: defaultTransactionDate() });
   const [saving, setSaving] = useState(false);
+
+  const resetForm = () => {
+    setForm({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: defaultTransactionDate() });
+    setEditingRecordId(null);
+  };
 
   const loadRecords = () => {
     setLoading(true);
@@ -82,21 +96,42 @@ export default function ThuChiPage() {
     } catch { alert("Không thể xóa!"); }
   };
 
-  const handleCreate = async (e) => {
+  const handleEdit = (record) => {
+    setEditingRecordId(record._id);
+    setForm({
+      type: record.type || "EXPENSE",
+      category: record.category || "",
+      amount: String(record.amount ?? ""),
+      description: record.description || "",
+      transaction_date: getDateInputValue(record.transaction_date),
+    });
+    setShowModal(true);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.category.trim() || !form.amount) return;
     setSaving(true);
     try {
-      await axiosInstance.post("/transactions", {
+      const payload = {
         ...form,
         amount: Number(form.amount),
-        created_by: user.id,
-      });
+      };
+
+      if (editingRecordId) {
+        await axiosInstance.put(`/transactions/${editingRecordId}`, payload);
+      } else {
+        await axiosInstance.post("/transactions", {
+          ...payload,
+          created_by: user.id,
+        });
+      }
+
       setShowModal(false);
-      setForm({ type: "EXPENSE", category: "", amount: "", description: "", transaction_date: new Date().toISOString().slice(0, 10) });
+      resetForm();
       loadRecords();
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi tạo phiếu!");
+      alert(err.response?.data?.message || (editingRecordId ? "Lỗi khi cập nhật phiếu!" : "Lỗi khi tạo phiếu!"));
     } finally {
       setSaving(false);
     }
@@ -236,7 +271,7 @@ export default function ThuChiPage() {
                       <span className="font-bold text-gray-900 text-[15px]">{formatCurrency(r.amount)}</span>
                     </div>
                     <div className="col-span-1 flex items-center justify-end gap-3">
-                      <button className="flex items-center gap-1 text-xs font-semibold text-sky-500 hover:text-sky-700 transition-colors" title="Sửa">
+                      <button onClick={() => handleEdit(r)} className="flex items-center gap-1 text-xs font-semibold text-sky-500 hover:text-sky-700 transition-colors" title="Sửa">
                         <Pencil className="w-3.5 h-3.5" />Sửa
                       </button>
                       <button onClick={() => handleDelete(r._id)} className="flex items-center gap-1 text-xs font-semibold text-red-400 hover:text-red-600 transition-colors" title="Xóa">
@@ -255,7 +290,10 @@ export default function ThuChiPage() {
 
       {/* ─── FAB ─── */}
       <button
-        onClick={() => setShowModal(true)}
+        onClick={() => {
+          resetForm();
+          setShowModal(true);
+        }}
         className="fixed bottom-6 right-6 w-14 h-14 bg-nav-bg text-white rounded-full shadow-lg hover:opacity-90 transition-transform active:scale-95 flex items-center justify-center z-50"
       >
         <Plus className="w-8 h-8" />
@@ -266,12 +304,21 @@ export default function ThuChiPage() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)}>
           <form
             onClick={(e) => e.stopPropagation()}
-            onSubmit={handleCreate}
+            onSubmit={handleSubmit}
             className="bg-white animate-scale-in rounded-2xl shadow-2xl w-[420px] p-6 flex flex-col gap-4"
           >
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-gray-800 text-base">Tạo phiếu Thu / Chi</h2>
-              <button type="button" onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="font-bold text-gray-800 text-base">{editingRecordId ? "Sửa phiếu Thu / Chi" : "Tạo phiếu Thu / Chi"}</h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
             </div>
 
             <div className="flex gap-3">
@@ -331,9 +378,18 @@ export default function ThuChiPage() {
             </div>
 
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-md transition-colors">Hủy</button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  resetForm();
+                }}
+                className="flex-1 py-2.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                Hủy
+              </button>
               <button type="submit" disabled={saving} className="btn-magnetic btn-shimmer flex-1 py-2.5 text-sm font-bold text-white rounded-md disabled:opacity-60">
-                {saving ? "Đang lưu..." : "Lưu phiếu"}
+                {saving ? "Đang lưu..." : editingRecordId ? "Cập nhật phiếu" : "Lưu phiếu"}
               </button>
             </div>
           </form>

@@ -316,8 +316,10 @@ const TicketItem = ({
   const isReceived = ticket.status === "RECEIVED";
   const isReady = ticket.status === "READY";
   const isCompleted = ticket.status === "COMPLETED";
+  const isCancelled = ticket.status === "CANCELLED";
   const isAdmin = userRole === "ADMIN";
   const isUnpaid = !ticket.payment_status || ticket.payment_status === "UNPAID";
+  const canDelete = isReceived || isCancelled;
 
   return (
     <div className="grid grid-cols-12 px-4 py-3.5 border-b border-slate-100 table-row-hover transition-all items-center text-sm">
@@ -397,14 +399,16 @@ const TicketItem = ({
                 <Pencil className="w-3.5 h-3.5" />
                 Sửa
               </button>
-              <button
-                onClick={() => onDelete(ticket._id)}
-                className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
-                title="Xóa"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                Xóa
-              </button>
+              {canDelete && (
+                <button
+                  onClick={() => onDelete(ticket._id)}
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
+                  title="Xóa"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Xóa
+                </button>
+              )}
             </>
           )}
 
@@ -461,7 +465,7 @@ const TicketItem = ({
                 In phiếu
               </button>
 
-              {isAdmin && (
+              {isAdmin && canDelete && (
                 <button
                   onClick={() => onDelete(ticket._id)}
                   className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
@@ -475,14 +479,26 @@ const TicketItem = ({
           )}
 
           {!isReceived && !isReady && !isCompleted && (
-            <button
-              onClick={() => onView(ticket)}
-              className="flex items-center gap-1.5 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 hover:border-sky-400 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
-              title="Xem chi tiết"
-            >
-              <Eye className="w-3.5 h-3.5" />
-              Chi tiết
-            </button>
+            <>
+              <button
+                onClick={() => onView(ticket)}
+                className="flex items-center gap-1.5 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 hover:border-sky-400 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
+                title="Xem chi tiết"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                Chi tiết
+              </button>
+              {canDelete && (
+                <button
+                  onClick={() => onDelete(ticket._id)}
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-red-500 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-400 px-2.5 py-1.5 rounded-full transition-all cursor-pointer"
+                  title="Xóa"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Xóa
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -841,7 +857,7 @@ export default function DanhSachDoPage() {
                   onPayOs={handlePayOsClick}
                   onConfirmPayment={handleConfirmPayment}
                   onView={openDetailModal}
-                  onEdit={setEditingTicket}
+                  onEdit={(ticket) => navigate("/nhan-do", { state: { editOrder: ticket } })}
                   onOpenStatus={setStatusTicket}
                 />
               ))

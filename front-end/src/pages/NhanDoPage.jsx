@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+﻿import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useCallback, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -24,7 +24,10 @@ const formatMoney = (n) =>
 
 export default function NhanDoPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
+  const editingOrder = location.state?.editOrder || null;
+  const isEditMode = Boolean(editingOrder?._id);
 
   /* --- auth --- */
   useEffect(() => {
@@ -67,6 +70,18 @@ export default function NhanDoPage() {
 
   const [loading, setLoading] = useState(true);
 
+  const mapOrderItemsToSelectedItems = useCallback((items = []) => (
+    items.map((item) => ({
+      id: item.service_id?._id || item.service_id,
+      name: item.service_id?.name || "Dịch vụ",
+      price: Number(item.price || 0),
+      unit: item.service_id?.unit_id?.name || "",
+      qty: Number(item.quantity || 1),
+      orderItemId: item._id,
+    }))
+      .filter((item) => item.id)
+  ), []);
+
   /* --- load shelves & services on mount --- */
   useEffect(() => {
     Promise.all([
@@ -84,9 +99,9 @@ export default function NhanDoPage() {
       }));
       setServices(activeServices);
       
-      // Select "Giặt hỗn hợp" by default if it exists
+      // Select default service only when creating a new order
       const defaultService = activeServices.find(s => s.name.toLowerCase() === "giặt hỗn hợp") || activeServices[0];
-      if (defaultService) {
+      if (defaultService && !isEditMode) {
         setSelectedItems([{ ...defaultService, qty: 1 }]);
       }
 
@@ -96,7 +111,47 @@ export default function NhanDoPage() {
       }
 
     }).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }, [isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode || !editingOrder?._id) return;
+
+    let cancelled = false;
+
+    const loadOrderForEdit = async () => {
+      try {
+        const [orderRes, itemsRes] = await Promise.all([
+          axiosInstance.get(`/orders/${editingOrder._id}`),
+          axiosInstance.get(`/order-items?order_id=${editingOrder._id}`),
+        ]);
+
+        if (cancelled) return;
+
+        const order = orderRes.data || editingOrder;
+        const orderItems = itemsRes.data || [];
+
+        setSelectedCustomer(order.customer_id || null);
+        setCustomerSearch("");
+        setShowCustomerDropdown(false);
+        setSelectedItems(mapOrderItemsToSelectedItems(orderItems));
+        setSurcharge(Number(order.surcharge || 0));
+        setDiscount(Number(order.discount_value || 0));
+        setIsDiscountPercent(order.discount_type !== "FIXED");
+        setIsPrepaid(order.payment_status === "PAID");
+        setNote(order.note || "");
+        setSelectedShelf(order.shelf_id?.name || null);
+        setPrintedCode(order.order_code ? String(order.order_code) : "");
+      } catch {
+        alert("Không thể tải dữ liệu đơn để sửa!");
+      }
+    };
+
+    loadOrderForEdit();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingOrder, isEditMode, mapOrderItemsToSelectedItems]);
 
   /* --- customer search debounce --- */
   useEffect(() => {
@@ -225,41 +280,98 @@ export default function NhanDoPage() {
     setSubmitting(true);
     try {
       const shelfObj = shelves.find((s) => s.name === selectedShelf);
-      const orderPayload = {
-        order_code: printedCode,
-        status: "RECEIVED", // Đã đủ đồ
-        customer_id: selectedCustomer._id,
-        payment_method: "CASH",
-        payment_status: isPrepaid ? "PAID" : "UNPAID",
-        surcharge,
-        discount_type: isDiscountPercent ? "PERCENT" : "FIXED",
-        discount_value: discount,
-        note,
-        shelf_id: shelfObj?._id ?? undefined,
-        created_by: user.id,
-      };
-      const orderRes = await axiosInstance.post("/orders", orderPayload);
-      const orderId = orderRes.data.order._id || orderRes.data._id;
+      if (isEditMode && editingOrder?._id) {
+        const detailRes = await axiosInstance.get(`/orders/${editingOrder._id}`);
+        const currentOrder = detailRes.data || {};
 
-      await Promise.all(
-        selectedItems.map((item) =>
-          axiosInstance.post("/order-items", {
-            order_id: orderId,
-            service_id: item.id,
-            quantity: item.qty,
-            price: item.price,
+        const orderPayload = {
+          order_code: printedCode,
+          status: currentOrder.status || editingOrder.status || "RECEIVED",
+          customer_id: selectedCustomer._id,
+          payment_method: currentOrder.payment_method || (isPrepaid ? "BANK" : "CASH"),
+          payment_status: currentOrder.payment_status || (isPrepaid ? "PAID" : "UNPAID"),
+          surcharge,
+          discount_type: isDiscountPercent ? "PERCENT" : "FIXED",
+          discount_value: discount,
+          note,
+          shelf_id: shelfObj?._id ?? null,
+        };
+
+        await axiosInstance.put(`/orders/${editingOrder._id}`, orderPayload);
+
+        const existingItemsRes = await axiosInstance.get(`/order-items?order_id=${editingOrder._id}`);
+        const existingItems = existingItemsRes.data || [];
+        const existingByServiceId = new Map(
+          existingItems
+            .map((item) => [item.service_id?._id || item.service_id, item])
+            .filter(([serviceId]) => Boolean(serviceId))
+        );
+
+        await Promise.all(
+          selectedItems.map((item) => {
+            const matched = existingByServiceId.get(item.id);
+            if (matched?._id) {
+              existingByServiceId.delete(item.id);
+              return axiosInstance.put(`/order-items/${matched._id}`, {
+                quantity: item.qty,
+                price: item.price,
+              });
+            }
+            return axiosInstance.post("/order-items", {
+              order_id: editingOrder._id,
+              service_id: item.id,
+              quantity: item.qty,
+              price: item.price,
+            });
           })
-        )
-      );
+        );
+
+        await Promise.all(
+          Array.from(existingByServiceId.values())
+            .filter((item) => item?._id)
+            .map((item) => axiosInstance.delete(`/order-items/${item._id}`))
+        );
+
+        alert("Cập nhật đơn hàng thành công!");
+      } else {
+        const orderPayload = {
+          order_code: printedCode,
+          status: "RECEIVED", // Đã đủ đồ
+          customer_id: selectedCustomer._id,
+          payment_method: "CASH",
+          payment_status: isPrepaid ? "PAID" : "UNPAID",
+          surcharge,
+          discount_type: isDiscountPercent ? "PERCENT" : "FIXED",
+          discount_value: discount,
+          note,
+          shelf_id: shelfObj?._id ?? undefined,
+          created_by: user.id,
+        };
+        const orderRes = await axiosInstance.post("/orders", orderPayload);
+        const orderId = orderRes.data.order._id || orderRes.data._id;
+
+        await Promise.all(
+          selectedItems.map((item) =>
+            axiosInstance.post("/order-items", {
+              order_id: orderId,
+              service_id: item.id,
+              quantity: item.qty,
+              price: item.price,
+            })
+          )
+        );
+      }
 
       resetForm();
       if (print) navigate("/danh-sach-do");
       else {
-        alert("Lưu thao tác thành công!");
+        if (!isEditMode) {
+          alert("Lưu thao tác thành công!");
+        }
         navigate("/danh-sach-do");
       }
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi tạo phiếu!");
+      alert(err.response?.data?.message || (isEditMode ? "Lỗi khi cập nhật phiếu!" : "Lỗi khi tạo phiếu!"));
     } finally {
       setSubmitting(false);
     }
@@ -686,7 +798,7 @@ export default function NhanDoPage() {
               }`}
             >
               <Save size={18} />
-              {submitting ? "Đang lưu..." : "Lưu Đơn Hàng"}
+              {submitting ? "Đang lưu..." : isEditMode ? "Cập Nhật Đơn Hàng" : "Lưu Đơn Hàng"}
             </button>
           </div>
         </div>
