@@ -245,6 +245,14 @@
     box-sizing: border-box;
   }
 
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
   body {
     @apply font-sans antialiased bg-main-bg text-slate-800 min-h-screen;
   }

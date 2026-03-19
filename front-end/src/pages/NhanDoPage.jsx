@@ -183,8 +183,15 @@ export default function NhanDoPage() {
         phone: newCustomerPhone,
         address: newCustomerAddress,
       });
-      setSelectedCustomer(res.data);
+      const createdCustomer = res.data?.customer ?? res.data;
+      setSelectedCustomer(createdCustomer);
       setCustomerSearch("");
+      setShowCustomerDropdown(false);
+      setCustomers([]);
+      setLatestCustomers((prev) => {
+        const next = [createdCustomer, ...prev.filter((c) => c._id !== createdCustomer?._id)];
+        return next.slice(0, 5);
+      });
       setIsAddCustomerModalOpen(false);
       setNewCustomerFullName("");
       setNewCustomerPhone("");
@@ -276,7 +283,7 @@ export default function NhanDoPage() {
     </div>
 
     {/* ─── Main UI ─── */}
-    <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans print:hidden">
+    <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans print:hidden [&_button:not(:disabled)]:cursor-pointer">
       <Header activePage="nhan-do" />
 
       {/* ─── Loading skeleton ─── */}
@@ -754,15 +761,15 @@ export default function NhanDoPage() {
             className="bg-white rounded-2xl shadow-2xl w-[400px] flex flex-col overflow-hidden animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-accent-blue py-3 px-5 flex items-center justify-between">
-              <h3 className="text-white font-bold text-base">Thêm Khách Hàng Tuyến</h3>
+            <div className="bg-nav-bg py-3 px-5 flex items-center justify-between">
+              <h3 className="text-white font-bold text-base">Thêm Khách Hàng</h3>
               <button onClick={() => setIsAddCustomerModalOpen(false)} className="text-white/80 hover:text-white">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 flex flex-col gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1">Tên khách hàng (*)</label>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Tên khách hàng</label>
                 <input
                   type="text"
                   value={newCustomerFullName}
@@ -793,7 +800,7 @@ export default function NhanDoPage() {
               </div>
               <button
                 onClick={handleAddCustomer}
-                className="mt-2 w-full py-2 bg-accent-green text-white font-bold rounded hover:opacity-90"
+                className="mt-2 w-full py-2 bg-nav-bg text-white font-bold rounded hover:opacity-90"
               >
                 Lưu Khách Hàng
               </button>

@@ -21,6 +21,7 @@ export default function Header({ activePage }) {
   const { user, logout } = useAuth();
   const [logoHover, setLogoHover] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const displayName = user?.full_name ?? user?.name ?? "Tài khoản";
 
   const handleLogout = () => {
     logout();
@@ -137,10 +138,10 @@ export default function Header({ activePage }) {
               <span className="material-symbols-outlined text-[22px] animate-heartbeat">account_circle</span>
               <div className="flex flex-col leading-tight">
                 <span className="text-[11px] font-bold whitespace-nowrap text-white">
-                  {user?.role === "ADMIN" ? "Quản trị viên" : "Admin"}
+                  {displayName}
                 </span>
                 <span className="text-[10px] font-normal whitespace-nowrap text-white/70">
-                  {user?.full_name ?? (user?.role === "ADMIN" ? "Admin" : "Staff")}
+                  {user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}
                 </span>
               </div>
               <span className="material-symbols-outlined text-[16px] text-white/80 transition-transform duration-200 group-hover:rotate-180">expand_more</span>
@@ -151,10 +152,10 @@ export default function Header({ activePage }) {
               <div className="px-4 py-3 border-b border-gray-100/80 mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow">
-                    <span className="text-white text-xs font-bold">{(user?.full_name ?? "A")[0].toUpperCase()}</span>
+                    <span className="text-white text-xs font-bold">{displayName[0].toUpperCase()}</span>
                   </div>
                   <div>
-                    <div className="text-[11px] font-bold text-gray-800">{user?.full_name ?? "Admin"}</div>
+                    <div className="text-[11px] font-bold text-gray-800">{displayName}</div>
                     <div className="text-[10px] text-gray-400">{user?.role === "ADMIN" ? "Quản trị viên" : "Nhân viên"}</div>
                   </div>
                 </div>
@@ -169,7 +170,7 @@ export default function Header({ activePage }) {
                 className="w-full text-left px-4 py-2.5 text-xs font-semibold text-red-500 hover:bg-red-50 transition-colors flex items-center gap-2"
               >
                 <span className="material-symbols-outlined text-[16px]">logout</span>
-                Đăng xuất khỏi {user?.full_name ?? "hệ thống"}
+                Đăng xuất khỏi {displayName}
               </button>
             </div>
           </div>

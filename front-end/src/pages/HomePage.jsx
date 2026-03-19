@@ -68,6 +68,7 @@ export default function HomePage() {
   const [time, setTime] = useState(new Date());
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const greeting = getGreeting();
+  const isAdmin = user?.role === "ADMIN";
 
   useEffect(() => {
     if (!user) navigate("/login");
@@ -180,42 +181,58 @@ export default function HomePage() {
             <div className="ml-auto h-px flex-1 bg-gradient-to-r from-blue-100 to-transparent max-w-[120px]" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <div onClick={() => navigate("/ket-qua-kinh-doanh")} className="group">
-              <FeatureCard icon="menu_book" title="Sổ Quỹ Cửa Hàng" description="Các khoản thu chi cửa hàng"
-                iconColor="text-emerald-600" iconBg="bg-emerald-50" accentColor="bg-emerald-400" delay="delay-100" />
-            </div>
-            <div onClick={() => navigate("/bao-cao-doanh-thu")} className="group">
-              <FeatureCard icon="bar_chart" title="Báo Cáo Kinh Doanh" description="Xem biểu đồ & báo cáo kinh doanh"
-                iconColor="text-violet-600" iconBg="bg-violet-50" accentColor="bg-violet-400" delay="delay-150" />
-            </div>
+            {isAdmin && (
+              <div onClick={() => navigate("/ket-qua-kinh-doanh")} className="group">
+                <FeatureCard icon="menu_book" title="Sổ Quỹ Cửa Hàng" description="Các khoản thu chi cửa hàng"
+                  iconColor="text-emerald-600" iconBg="bg-emerald-50" accentColor="bg-emerald-400" delay="delay-100" />
+              </div>
+            )}
+            {isAdmin && (
+              <div onClick={() => navigate("/bao-cao-doanh-thu")} className="group">
+                <FeatureCard icon="bar_chart" title="Báo Cáo Kinh Doanh" description="Xem biểu đồ & báo cáo kinh doanh"
+                  iconColor="text-violet-600" iconBg="bg-violet-50" accentColor="bg-violet-400" delay="delay-150" />
+              </div>
+            )}
             <div onClick={() => navigate("/khach-hang")} className="group">
               <FeatureCard icon="groups" title="Khách Hàng" description="Danh sách khách hàng"
                 iconColor="text-sky-600" iconBg="bg-sky-50" accentColor="bg-sky-400" delay="delay-200" />
             </div>
-            <div onClick={() => navigate("/bang-gia-dich-vu")} className="group">
-              <FeatureCard icon="payments" title="Bảng Giá" description="Bảng giá dịch vụ"
-                iconColor="text-amber-600" iconBg="bg-amber-50" accentColor="bg-amber-400" delay="delay-250" />
-            </div>
-            <div onClick={() => navigate("/don-vi-tinh")} className="group">
-              <FeatureCard icon="straighten" title="Đơn Vị Tính" description="Danh sách đơn vị tính"
-                iconColor="text-teal-600" iconBg="bg-teal-50" accentColor="bg-teal-400" delay="delay-300" />
-            </div>
-            <div onClick={() => navigate("/ke-luu-do")} className="group">
-              <FeatureCard icon="shelves" title="Kệ Lưu Đồ" description="Danh sách kệ cất đồ"
-                iconColor="text-indigo-600" iconBg="bg-indigo-50" accentColor="bg-indigo-400" delay="delay-350" />
-            </div>
-            <div onClick={() => navigate("/tai-khoan-ngan-hang")} className="group">
-              <FeatureCard icon="account_balance" title="Ngân Hàng" description="Danh sách ngân hàng"
-                iconColor="text-blue-700" iconBg="bg-blue-50" accentColor="bg-blue-500" delay="delay-400" />
-            </div>
-            <div onClick={() => navigate("/cua-hang")} className="group">
-              <FeatureCard icon="store" title="Cửa Hàng" description="Thông tin cửa hàng"
-                iconColor="text-orange-600" iconBg="bg-orange-50" accentColor="bg-orange-400" delay="delay-450" />
-            </div>
-            <div onClick={() => navigate("/nhat-ky")} className="group">
-              <FeatureCard icon="history_edu" title="Nhật Ký" description="Quản lý lịch sử thao tác"
-                iconColor="text-slate-600" iconBg="bg-slate-100" accentColor="bg-slate-400" delay="delay-500" />
-            </div>
+            {isAdmin && (
+              <div onClick={() => navigate("/bang-gia-dich-vu")} className="group">
+                <FeatureCard icon="payments" title="Bảng Giá" description="Bảng giá dịch vụ"
+                  iconColor="text-amber-600" iconBg="bg-amber-50" accentColor="bg-amber-400" delay="delay-250" />
+              </div>
+            )}
+            {isAdmin && (
+              <div onClick={() => navigate("/don-vi-tinh")} className="group">
+                <FeatureCard icon="straighten" title="Đơn Vị Tính" description="Danh sách đơn vị tính"
+                  iconColor="text-teal-600" iconBg="bg-teal-50" accentColor="bg-teal-400" delay="delay-300" />
+              </div>
+            )}
+            {isAdmin && (
+              <div onClick={() => navigate("/ke-luu-do")} className="group">
+                <FeatureCard icon="shelves" title="Kệ Lưu Đồ" description="Danh sách kệ cất đồ"
+                  iconColor="text-indigo-600" iconBg="bg-indigo-50" accentColor="bg-indigo-400" delay="delay-350" />
+              </div>
+            )}
+            {/* {isAdmin && (
+              <div onClick={() => navigate("/tai-khoan-ngan-hang")} className="group">
+                <FeatureCard icon="account_balance" title="Ngân Hàng" description="Danh sách ngân hàng"
+                  iconColor="text-blue-700" iconBg="bg-blue-50" accentColor="bg-blue-500" delay="delay-400" />
+              </div>
+            )} */}
+            {/* {isAdmin && (
+              <div onClick={() => navigate("/cua-hang")} className="group">
+                <FeatureCard icon="store" title="Cửa Hàng" description="Thông tin cửa hàng"
+                  iconColor="text-orange-600" iconBg="bg-orange-50" accentColor="bg-orange-400" delay="delay-450" />
+              </div>
+            )} */}
+            {isAdmin && (
+              <div onClick={() => navigate("/nhat-ky")} className="group">
+                <FeatureCard icon="history_edu" title="Nhật Ký" description="Quản lý lịch sử thao tác"
+                  iconColor="text-slate-600" iconBg="bg-slate-100" accentColor="bg-slate-400" delay="delay-500" />
+              </div>
+            )}
             {/* <div onClick={() => navigate("/phan-quyen")} className="group">
               <FeatureCard icon="admin_panel_settings" title="Phân Quyền" description="Quản lý & phân quyền nhân viên"
                 iconColor="text-rose-600" iconBg="bg-rose-50" accentColor="bg-rose-400" delay="delay-600" />
