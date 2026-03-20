@@ -2,6 +2,60 @@ const Transaction = require("../models/Transaction");
 const Order = require("../models/Order");
 const OrderItem = require("../models/OrderItem");
 
+const toDateKey = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+const formatDateVi = (dateKey) => {
+  const [yyyy, mm, dd] = dateKey.split("-");
+  return `${dd}/${mm}/${yyyy}`;
+};
+
+const buildDailyRevenueRows = (orders, transactions) => {
+  const dailyMap = new Map();
+
+  const ensureDay = (dateKey) => {
+    if (!dailyMap.has(dateKey)) {
+      dailyMap.set(dateKey, {
+        date: formatDateVi(dateKey),
+        orderAmount: 0,
+        receivedAmount: 0,
+        unpaidAmount: 0,
+      });
+    }
+    return dailyMap.get(dateKey);
+  };
+
+  orders.forEach((order) => {
+    const dateKey = toDateKey(order.created_at);
+    if (!dateKey) return;
+    const day = ensureDay(dateKey);
+    const total = Number(order.total_amount) || 0;
+    day.orderAmount += total;
+    if (order.payment_status !== "PAID" && order.status !== "CANCELLED") {
+      day.unpaidAmount += total;
+    }
+  });
+
+  transactions.forEach((transaction) => {
+    if (transaction.type !== "INCOME") return;
+    const dateKey = toDateKey(transaction.transaction_date || transaction.created_at);
+    if (!dateKey) return;
+    const day = ensureDay(dateKey);
+    day.receivedAmount += Number(transaction.amount) || 0;
+  });
+
+  return Array.from(dailyMap.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, value]) => value);
+};
+
 const getRevenueReport = async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -81,6 +135,8 @@ const getRevenueReport = async (req, res) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
 
+    const dailyDetails = buildDailyRevenueRows(periodOrders, periodTransactions);
+
     // 2. Dữ liệu cho biểu đồ và bảng theo năm (CẢ NĂM của fromDate)
     const year = fromDate.getFullYear();
     const startOfYear = new Date(year, 0, 1);
@@ -127,6 +183,7 @@ const getRevenueReport = async (req, res) => {
       orderStatusData,
       topServices,
       summaryStats,
+      dailyDetails,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

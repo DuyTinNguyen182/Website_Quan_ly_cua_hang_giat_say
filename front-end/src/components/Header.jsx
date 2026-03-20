@@ -69,7 +69,7 @@ export default function Header({ activePage }) {
                 <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 min-w-[200px] opacity-0 invisible -translate-y-2 scale-95 group-hover:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:scale-100 transition-all duration-200 z-50">
                   <button onClick={() => navigate("/bao-cao-doanh-thu")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px]">bar_chart</span>
-                    Báo cáo doanh thu tháng
+                    Báo cáo doanh thu
                   </button>
                   <button onClick={() => navigate("/ket-qua-kinh-doanh")} className="w-full text-left px-4 py-2.5 text-xs font-semibold text-gray-700 hover:bg-indigo-50 hover:text-nav-bg transition-colors flex items-center gap-2">
                     <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>

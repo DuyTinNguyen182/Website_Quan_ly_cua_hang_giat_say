@@ -3,9 +3,17 @@ import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
-import { ChevronLeft, Download } from "lucide-react";
+import { ChevronLeft, Download, LoaderCircle } from "lucide-react";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
+const formatDateVN = (value) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(value));
+const formatDateFilename = (value) => {
+  const d = new Date(value);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}${mm}${dd}`;
+};
 
 /* ─── Simple bar chart component ─── */
 const BarChart = ({ data }) => {
@@ -190,8 +198,10 @@ export default function BaoCaoDoanhThuPage() {
   const [customTo, setCustomTo] = useState("");
   const [monthlyData, setMonthlyData] = useState(buildEmptyMonths(new Date().getFullYear()));
   const [loading, setLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
   const [orderStatusData, setOrderStatusData] = useState([]);
   const [topServices, setTopServices] = useState([]);
+  const [dailyDetails, setDailyDetails] = useState([]);
   const [summaryStats, setSummaryStats] = useState({
     totalOrders: 0, totalAmount: 0,
     paidOrders: 0, paidAmount: 0,
@@ -220,6 +230,7 @@ export default function BaoCaoDoanhThuPage() {
           debtOrders: 0, debtAmount: 0,
         });
         setTopServices(data.topServices || []);
+        setDailyDetails(data.dailyDetails || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -228,6 +239,131 @@ export default function BaoCaoDoanhThuPage() {
   const totalRevenue = monthlyData.reduce((s, d) => s + d.revenue, 0);
   const totalExpense = monthlyData.reduce((s, d) => s + d.expense, 0);
   const totalProfit = totalRevenue - totalExpense;
+
+  const handleExportReport = async () => {
+    try {
+      setIsExporting(true);
+
+      const ExcelJS = (await import("exceljs")).default;
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("BaoCao");
+
+      worksheet.columns = [
+        { key: "a", width: 3 },
+        { key: "stt", width: 8 },
+        { key: "date", width: 18 },
+        { key: "order", width: 19 },
+        { key: "received", width: 19 },
+        { key: "unpaid", width: 18 },
+      ];
+
+      worksheet.mergeCells("B2:F2");
+      const titleCell = worksheet.getCell("B2");
+      titleCell.value = "CHI TIẾT KINH DOANH";
+      titleCell.font = { name: "Arial", size: 28, bold: true };
+      titleCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      worksheet.mergeCells("B3:F3");
+      const fromLabel = formatDateVN(dateRange.from).replaceAll("/", "-");
+      const toLabel = formatDateVN(dateRange.to).replaceAll("/", "-");
+      const rangeCell = worksheet.getCell("B3");
+      rangeCell.value = `(Từ ngày ${fromLabel} đến ${toLabel})`;
+      rangeCell.font = { name: "Arial", size: 18, bold: true, italic: true };
+      rangeCell.alignment = { horizontal: "center", vertical: "middle" };
+
+      const headerRow = worksheet.getRow(5);
+      headerRow.height = 42;
+      ["STT", "Ngày", "Tiền đơn hàng", "Tiền thu khách", "Tiền chưa thu"].forEach((header, i) => {
+        const cell = worksheet.getCell(5, i + 2);
+        cell.value = header;
+        cell.font = { name: "Arial", size: 13, bold: true };
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE8E8E8" } };
+      });
+
+      const thinBorder = {
+        top: { style: "thin", color: { argb: "FF7A7A7A" } },
+        left: { style: "thin", color: { argb: "FF7A7A7A" } },
+        bottom: { style: "thin", color: { argb: "FF7A7A7A" } },
+        right: { style: "thin", color: { argb: "FF7A7A7A" } },
+      };
+
+      const rows = dailyDetails.length > 0
+        ? dailyDetails
+        : [{ date: formatDateVN(dateRange.from), orderAmount: 0, receivedAmount: 0, unpaidAmount: 0 }];
+
+      let rowIndex = 6;
+      rows.forEach((row, idx) => {
+        worksheet.getCell(rowIndex, 2).value = idx + 1;
+        worksheet.getCell(rowIndex, 3).value = row.date;
+        worksheet.getCell(rowIndex, 4).value = Number(row.orderAmount) || 0;
+        worksheet.getCell(rowIndex, 5).value = Number(row.receivedAmount) || 0;
+        worksheet.getCell(rowIndex, 6).value = Number(row.unpaidAmount) || 0;
+
+        worksheet.getCell(rowIndex, 2).alignment = { horizontal: "center", vertical: "middle" };
+        worksheet.getCell(rowIndex, 3).alignment = { horizontal: "center", vertical: "middle" };
+        worksheet.getCell(rowIndex, 4).alignment = { horizontal: "right", vertical: "middle" };
+        worksheet.getCell(rowIndex, 5).alignment = { horizontal: "right", vertical: "middle" };
+        worksheet.getCell(rowIndex, 6).alignment = { horizontal: "right", vertical: "middle" };
+
+        worksheet.getCell(rowIndex, 4).numFmt = "#,##0";
+        worksheet.getCell(rowIndex, 5).numFmt = "#,##0";
+        worksheet.getCell(rowIndex, 6).numFmt = "#,##0";
+        rowIndex += 1;
+      });
+
+      const totalOrder = rows.reduce((sum, row) => sum + (Number(row.orderAmount) || 0), 0);
+      const totalReceived = rows.reduce((sum, row) => sum + (Number(row.receivedAmount) || 0), 0);
+      const totalUnpaid = rows.reduce((sum, row) => sum + (Number(row.unpaidAmount) || 0), 0);
+
+      worksheet.mergeCells(`B${rowIndex}:C${rowIndex}`);
+      worksheet.getCell(rowIndex, 2).value = "TỔNG";
+      worksheet.getCell(rowIndex, 2).font = { name: "Arial", size: 13, bold: true };
+      worksheet.getCell(rowIndex, 2).alignment = { horizontal: "center", vertical: "middle" };
+
+      worksheet.getCell(rowIndex, 4).value = totalOrder;
+      worksheet.getCell(rowIndex, 5).value = totalReceived;
+      worksheet.getCell(rowIndex, 6).value = totalUnpaid;
+      worksheet.getCell(rowIndex, 4).numFmt = "#,##0";
+      worksheet.getCell(rowIndex, 5).numFmt = "#,##0";
+      worksheet.getCell(rowIndex, 6).numFmt = "#,##0";
+      worksheet.getCell(rowIndex, 4).font = { name: "Arial", size: 13, bold: true };
+      worksheet.getCell(rowIndex, 5).font = { name: "Arial", size: 13, bold: true };
+      worksheet.getCell(rowIndex, 6).font = { name: "Arial", size: 13, bold: true };
+      worksheet.getCell(rowIndex, 4).alignment = { horizontal: "right", vertical: "middle" };
+      worksheet.getCell(rowIndex, 5).alignment = { horizontal: "right", vertical: "middle" };
+      worksheet.getCell(rowIndex, 6).alignment = { horizontal: "right", vertical: "middle" };
+
+      for (let r = 5; r <= rowIndex; r += 1) {
+        for (let c = 2; c <= 6; c += 1) {
+          worksheet.getCell(r, c).border = thinBorder;
+        }
+      }
+
+      worksheet.views = [{ state: "frozen", ySplit: 5 }];
+      worksheet.autoFilter = "B5:F5";
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob(
+        [buffer],
+        { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }
+      );
+      const fileName = `chi-tiet-kinh-doanh_${formatDateFilename(dateRange.from)}_${formatDateFilename(dateRange.to)}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export report failed:", err);
+      alert("Không thể xuất file. Vui lòng thử lại.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col overflow-hidden text-sm bg-main-bg font-sans">
@@ -275,9 +411,17 @@ export default function BaoCaoDoanhThuPage() {
           )}
         </div>
 
-        <button className="flex items-center gap-1 text-slate-600 hover:text-slate-800 transition-colors">
-          <Download className="w-4 h-4" />
-          <span className="text-xs font-bold uppercase">Xuất</span>
+        <button
+          onClick={handleExportReport}
+          disabled={isExporting || loading}
+          className="group inline-flex items-center gap-2 rounded-xl border border-indigo-300 bg-gradient-to-r from-indigo-500 via-sky-500 to-cyan-500 px-4 py-2 text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isExporting ? (
+            <LoaderCircle className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4 transition-transform duration-200 group-hover:translate-y-0.5" />
+          )}
+          <span className="text-xs font-bold uppercase tracking-wide">{isExporting ? "Đang xuất..." : "Xuất Excel"}</span>
         </button>
       </div>
 

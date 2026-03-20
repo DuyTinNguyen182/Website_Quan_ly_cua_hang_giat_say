@@ -47,6 +47,7 @@ export default function ThuChiPage() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("ALL");
   // modal state for creating new transaction
   const [showModal, setShowModal] = useState(false);
   const [editingRecordId, setEditingRecordId] = useState(null);
@@ -69,15 +70,19 @@ export default function ThuChiPage() {
   useEffect(() => { if (user) loadRecords(); }, [user]);
 
   const filtered = useMemo(() => {
-    if (!searchTerm.trim()) return records;
+    const byType = typeFilter === "ALL"
+      ? records
+      : records.filter((r) => r.type === typeFilter);
+
+    if (!searchTerm.trim()) return byType;
     const q = searchTerm.toLowerCase();
-    return records.filter(
+    return byType.filter(
       (r) =>
         r.category?.toLowerCase().includes(q) ||
         r.description?.toLowerCase().includes(q) ||
         r.created_by?.full_name?.toLowerCase().includes(q),
     );
-  }, [records, searchTerm]);
+  }, [records, searchTerm, typeFilter]);
 
   const totalThu = useMemo(
     () => records.filter((r) => r.type === "INCOME").reduce((s, r) => s + r.amount, 0),
@@ -154,37 +159,62 @@ export default function ThuChiPage() {
 
         {/* Center: summary tabs */}
         <div className="flex bg-white rounded-full overflow-hidden shadow-sm border border-gray-100 h-[52px]">
-          {/* Active tab */}
-          <div className="flex flex-col justify-center items-center px-6 bg-nav-bg text-white cursor-pointer">
+          {/* Tất cả */}
+          <button
+            type="button"
+            onClick={() => setTypeFilter("ALL")}
+            className={`flex flex-col justify-center items-center px-6 transition-colors ${
+              typeFilter === "ALL" ? "bg-nav-bg text-white" : "text-slate-600 hover:bg-gray-50"
+            }`}
+            title="Hiển thị tất cả phiếu"
+          >
             <div className="flex items-center gap-2">
               <Check size={14} />
               <span className="font-bold text-sm">Các khoản Thu | Chi</span>
             </div>
-            <span className="text-[9px] font-normal opacity-90">
+            <span className={`text-[9px] font-normal ${typeFilter === "ALL" ? "opacity-90" : "text-slate-500"}`}>
               Tiền phát sinh ngoài giặt ủi
             </span>
-          </div>
+          </button>
           {/* Tổng thu */}
-          <div className="flex flex-col justify-center items-center px-6 min-w-[140px] border-r border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors">
-            <span className="text-accent-blue font-bold text-lg leading-tight">
+          <button
+            type="button"
+            onClick={() => setTypeFilter((prev) => (prev === "INCOME" ? "ALL" : "INCOME"))}
+            className={`flex flex-col justify-center items-center px-6 min-w-[140px] border-r border-gray-100 cursor-pointer transition-colors ${
+              typeFilter === "INCOME" ? "bg-blue-600 text-white" : "hover:bg-gray-50"
+            }`}
+            title="Lọc theo phiếu Thu"
+          >
+            <span className={`font-bold text-lg leading-tight ${typeFilter === "INCOME" ? "text-white" : "text-accent-blue"}`}>
               {formatCurrency(totalThu)}
             </span>
-            <span className="text-[10px] text-gray-500 font-medium">Tổng tiền thu</span>
-          </div>
+            <span className={`text-[10px] font-medium ${typeFilter === "INCOME" ? "text-blue-100" : "text-gray-500"}`}>
+              Tổng tiền thu
+            </span>
+          </button>
           {/* Tổng chi */}
-          <div className="flex flex-col justify-center items-center px-6 min-w-[140px] cursor-pointer hover:bg-gray-50 transition-colors">
-            <span className="text-nav-bg font-bold text-lg leading-tight">
+          <button
+            type="button"
+            onClick={() => setTypeFilter((prev) => (prev === "EXPENSE" ? "ALL" : "EXPENSE"))}
+            className={`flex flex-col justify-center items-center px-6 min-w-[140px] cursor-pointer transition-colors ${
+              typeFilter === "EXPENSE" ? "bg-orange-500 text-white" : "hover:bg-gray-50"
+            }`}
+            title="Lọc theo phiếu Chi"
+          >
+            <span className={`font-bold text-lg leading-tight ${typeFilter === "EXPENSE" ? "text-white" : "text-nav-bg"}`}>
               {formatCurrency(totalChi)}
             </span>
-            <span className="text-[10px] text-gray-500 font-medium">Tổng tiền chi</span>
-          </div>
+            <span className={`text-[10px] font-medium ${typeFilter === "EXPENSE" ? "text-orange-100" : "text-gray-500"}`}>
+              Tổng tiền chi
+            </span>
+          </button>
         </div>
 
         {/* Right: controls */}
         <div className="flex items-center gap-4">
           <button className="flex items-center gap-1.5 text-slate-600 hover:text-slate-800 border border-slate-300 rounded-full px-3 py-1 transition-colors">
-            <Filter className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">LỌC</span>
+            {/* <Filter className="w-4 h-4" /> */}
+            {/* <span className="text-xs font-bold uppercase">LỌC</span> */}
           </button>
         </div>
       </div>

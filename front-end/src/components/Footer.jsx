@@ -7,7 +7,7 @@ export default function Footer() {
           <div className="w-4 h-4 rounded bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-sm">
             <span className="text-white text-[8px] font-bold">U</span>
           </div>
-          <p>© 2025 <span className="font-semibold text-nav-bg">HỆ THỐNG QUẢN LÝ GIẶT ỦI TVWASH</span></p>
+          <p>© 2026 <span className="font-semibold text-nav-bg">HỆ THỐNG QUẢN LÝ GIẶT ỦI TVWASH</span></p>
         </div>
         <div className="h-px flex-1 max-w-[100px]" style={{background:"linear-gradient(to left, transparent, rgba(37,99,235,0.25))"}} />
       </div>
