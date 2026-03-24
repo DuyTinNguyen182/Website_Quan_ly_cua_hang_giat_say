@@ -1,5 +1,5 @@
 ﻿import { useNavigate } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
@@ -542,6 +542,13 @@ export default function DanhSachDoPage() {
   const [qrCodeDataList, setQrCodeDataList] = useState(null);
   const [isGeneratingQRList, setIsGeneratingQRList] = useState(false);
 
+  const closePayOsModal = useCallback(() => {
+    setShowPayOsModal(false);
+    setPayOsTicket(null);
+    setQrCodeDataList(null);
+    setIsGeneratingQRList(false);
+  }, []);
+
   const loadOrders = () => {
     setLoading(true);
     const params = activeTab ? `?status=${activeTab}` : "";
@@ -621,11 +628,55 @@ export default function DanhSachDoPage() {
       }
     } catch {
       alert("Không thể tạo mã QR. Vui lòng thử lại!");
-      setShowPayOsModal(false);
+      closePayOsModal();
     } finally {
       setIsGeneratingQRList(false);
     }
   };
+
+  useEffect(() => {
+    if (!showPayOsModal || !payOsTicket?._id) return;
+
+    let timeoutId;
+    let cancelled = false;
+
+    const pollPaymentStatus = async () => {
+      try {
+        const res = await axiosInstance.get(`/orders/${payOsTicket._id}`);
+        const latestOrder = res.data;
+
+        if (latestOrder?.payment_status === "PAID") {
+          closePayOsModal();
+          loadOrders();
+          if (detailTicket?._id === latestOrder._id) {
+            setDetailTicket((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    payment_status: latestOrder.payment_status,
+                    payment_method: latestOrder.payment_method,
+                  }
+                : prev,
+            );
+          }
+          return;
+        }
+      } catch {
+        // Ignore transient polling errors and continue polling.
+      }
+
+      if (!cancelled) {
+        timeoutId = setTimeout(pollPaymentStatus, 3000);
+      }
+    };
+
+    timeoutId = setTimeout(pollPaymentStatus, 3000);
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [showPayOsModal, payOsTicket?._id, detailTicket?._id, closePayOsModal]);
 
   const handlePayOsSuccess = async () => {
     if (!payOsTicket) return;
@@ -634,8 +685,7 @@ export default function DanhSachDoPage() {
         payment_status: "PAID",
         payment_method: "BANK",
       });
-      setShowPayOsModal(false);
-      setPayOsTicket(null);
+      closePayOsModal();
       loadOrders();
       if (detailTicket?._id === payOsTicket._id) {
         setDetailTicket((prev) => (prev ? { ...prev, payment_status: "PAID", payment_method: "BANK" } : prev));
@@ -879,7 +929,7 @@ export default function DanhSachDoPage() {
 
         {/* ─── PayOS Modal ─── */}
         {showPayOsModal && payOsTicket && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowPayOsModal(false)}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={closePayOsModal}>
             <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center animate-scale-in max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
               <h2 className="text-xl font-bold text-slate-800 mb-2">Thanh toán PayOS</h2>
               <p className="text-sm text-slate-500 mb-6">Mã đơn: <span className="font-bold">{payOsTicket.order_code}</span></p>
@@ -906,7 +956,7 @@ export default function DanhSachDoPage() {
 
               <div className="flex gap-3 w-full">
                 <button
-                  onClick={() => setShowPayOsModal(false)}
+                  onClick={closePayOsModal}
                   className="flex-1 py-2.5 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Hủy
