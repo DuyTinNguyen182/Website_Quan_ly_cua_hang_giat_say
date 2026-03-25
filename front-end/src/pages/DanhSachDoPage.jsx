@@ -520,6 +520,77 @@ export default function DanhSachDoPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Filter state
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filterOptions, setFilterOptions] = useState({
+    orderCode: "",
+    time: "all",
+    customDateStart: "",
+    customDateEnd: "",
+    customer: "",
+    staff: "all",
+  });
+
+  const uniqueStaffs = useMemo(() => {
+    const staffs = new Map();
+    orders.forEach(o => {
+      if (o.created_by?._id) staffs.set(o.created_by._id, o.created_by.full_name);
+    });
+    return Array.from(staffs.entries()).map(([id, name]) => ({ id, name }));
+  }, [orders]);
+
+  const uniqueCustomers = useMemo(() => {
+    const customers = new Map();
+    orders.forEach(o => {
+      if (o.customer_id?._id) {
+        customers.set(o.customer_id._id, {
+          id: o.customer_id._id,
+          name: o.customer_id.full_name,
+          phone: o.customer_id.phone
+        });
+      }
+    });
+    return Array.from(customers.values());
+  }, [orders]);
+
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+
+  const activeFilters = useMemo(() => {
+    const filters = [];
+    if (filterOptions.orderCode.trim()) filters.push(`Mã: ${filterOptions.orderCode}`);
+    if (filterOptions.customer.trim()) filters.push(`KH: ${filterOptions.customer}`);
+    if (filterOptions.time !== "all") {
+      if (filterOptions.time === "custom") {
+        const formatDate = (dateString) => {
+          if (!dateString) return "";
+          const [y, m, d] = dateString.split('-');
+          return `${d}/${m}/${y}`;
+        };
+        
+        const start = formatDate(filterOptions.customDateStart);
+        const end = formatDate(filterOptions.customDateEnd);
+
+        if (start && end) {
+          filters.push(`Từ ${start} đến ${end}`);
+        } else if (start) {
+          filters.push(`Từ ${start}`);
+        } else if (end) {
+          filters.push(`Đến ${end}`);
+        } else {
+          filters.push("TG: Tùy ý");
+        }
+      } else {
+        const timeLabels = { today: "Hôm nay", week: "Tuần này", month: "Tháng này" };
+        filters.push(`TG: ${timeLabels[filterOptions.time]}`);
+      }
+    }
+    if (filterOptions.staff !== "all") {
+      const staffName = uniqueStaffs.find(s => s.id === filterOptions.staff)?.name || "Nhân viên";
+      filters.push(`NV: ${staffName}`);
+    }
+    return filters;
+  }, [filterOptions, uniqueStaffs]);
+
   // Print UI state
   const [printingTicket, setPrintingTicket] = useState(null);
 
@@ -755,15 +826,81 @@ export default function DanhSachDoPage() {
   };
 
   const filtered = useMemo(() => {
-    if (!searchTerm.trim()) return orders;
-    const q = searchTerm.toLowerCase();
-    return orders.filter(
-      (t) =>
-        t.order_code?.toLowerCase().includes(q) ||
-        t.customer_id?.full_name?.toLowerCase().includes(q) ||
-        t.customer_id?.phone?.includes(q),
-    );
-  }, [orders, searchTerm]);
+    let result = orders;
+
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      result = result.filter(
+        (t) =>
+          String(t.order_code || "").toLowerCase().includes(q) ||
+          String(t.customer_id?.full_name || "").toLowerCase().includes(q) ||
+          String(t.customer_id?.phone || "").includes(q),
+      );
+    }
+
+    if (filterOptions.orderCode.trim()) {
+      const q = filterOptions.orderCode.toLowerCase();
+      result = result.filter((t) => String(t.order_code || "").toLowerCase().includes(q));
+    }
+    if (filterOptions.customer.trim()) {
+      const q = filterOptions.customer.toLowerCase();
+      result = result.filter(
+        (t) =>
+          String(t.customer_id?.full_name || "").toLowerCase().includes(q) ||
+          String(t.customer_id?.phone || "").includes(q) ||
+          String(t.customer_id?.address || "").toLowerCase().includes(q)
+      );
+    }
+    if (filterOptions.staff !== "all") {
+      result = result.filter((t) => t.created_by?._id === filterOptions.staff);
+    }
+    if (filterOptions.time !== "all") {
+      const now = new Date();
+      result = result.filter((t) => {
+        if (!t.created_at) return false;
+        const d = new Date(t.created_at);
+        if (filterOptions.time === "today") {
+          return (
+            d.getDate() === now.getDate() &&
+            d.getMonth() === now.getMonth() &&
+            d.getFullYear() === now.getFullYear()
+          );
+        }
+        if (filterOptions.time === "week") {
+          const currentDay = now.getDay();
+          const distance = currentDay === 0 ? 6 : currentDay - 1; // 0 (Sunday) to 6, otherwise day - 1
+          const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - distance);
+          startOfWeek.setHours(0, 0, 0, 0);
+          return d >= startOfWeek;
+        }
+        if (filterOptions.time === "month") {
+          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        if (filterOptions.time === "custom") {
+          let isValid = true;
+          const timeAtMidnight = new Date(d).setHours(0, 0, 0, 0);
+
+          if (filterOptions.customDateStart) {
+            const startStr = filterOptions.customDateStart; // YYYY-MM-DD
+            const [y, m, day] = startStr.split('-').map(Number);
+            const startMidnight = new Date(y, m - 1, day).setHours(0, 0, 0, 0);
+            if (timeAtMidnight < startMidnight) isValid = false;
+          }
+
+          if (filterOptions.customDateEnd) {
+            const endStr = filterOptions.customDateEnd; // YYYY-MM-DD
+            const [y, m, day] = endStr.split('-').map(Number);
+            const endMidnight = new Date(y, m - 1, day).setHours(0, 0, 0, 0);
+            if (timeAtMidnight > endMidnight) isValid = false;
+          }
+          return isValid;
+        }
+        return true;
+      });
+    }
+
+    return result;
+  }, [orders, searchTerm, filterOptions]);
 
   return (
     <>
@@ -864,10 +1001,40 @@ export default function DanhSachDoPage() {
             </div>
           </div>
 
-          <button className="flex items-center gap-1.5 text-slate-600 hover:text-slate-800 border border-slate-300 rounded-full px-3 py-1 transition-colors cursor-pointer">
-            <Filter className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase">LỌC</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {activeFilters.length > 0 && (
+              <div className="flex items-center gap-1.5 hidden md:flex">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Đang lọc:</span>
+                <div className="flex items-center gap-1 max-w-[600px] overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                  {activeFilters.map((tag, idx) => (
+                    <span key={idx} className="bg-nav-bg/10 text-nav-bg text-[11px] font-semibold px-2 py-0.5 rounded border border-nav-bg/20 whitespace-nowrap">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setFilterOptions({ time: "all", staff: "all", orderCode: "", customer: "", customDateStart: "", customDateEnd: "" })}
+                  className="text-[11px] font-bold text-red-500 hover:bg-red-50 px-2 py-0.5 rounded transition-colors ml-1 cursor-pointer"
+                >
+                  Xóa lọc
+                </button>
+                <div className="w-px h-4 bg-slate-300 mx-1"></div>
+              </div>
+            )}
+            
+            <button 
+              onClick={() => setShowFilterModal(true)}
+              className="flex items-center gap-1.5 text-slate-600 hover:text-slate-800 border border-slate-300 rounded-full px-3 py-1 transition-colors cursor-pointer"
+            >
+              <Filter className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase border-l border-slate-300 pl-1.5 ml-0.5">LỌC</span>
+              {activeFilters.length > 0 && (
+                <span className="bg-nav-bg text-white text-[10px] px-1.5 py-0.5 rounded-full ml-0.5 font-bold">
+                  {activeFilters.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
 
         <main className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-3 pb-4 page-enter">
@@ -998,6 +1165,204 @@ export default function DanhSachDoPage() {
             onClose={() => setStatusTicket(null)}
             updating={isUpdatingStatus}
           />
+        )}
+
+        {/* Filter Drawer Overlay */}
+        {showFilterModal && (
+          <div
+            className="fixed inset-0 z-[120] flex justify-end bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowFilterModal(false)}
+          >
+            <div
+              className="bg-white shadow-2xl w-full max-w-sm h-full flex flex-col pt-4 pb-4 animate-slide-left"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-5 pb-4 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-nav-bg/10 flex items-center justify-center">
+                    <Filter className="w-4 h-4 text-nav-bg" />
+                  </div>
+                  <h2 className="text-base font-extrabold text-slate-800">LỌC DANH SÁCH</h2>
+                </div>
+                <button
+                  onClick={() => setShowFilterModal(false)}
+                  className="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 flex items-center justify-center transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-5 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
+                {/* Search Term Quick Filter */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Search className="w-3.5 h-3.5" /> Tìm nhanh
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Tìm toàn bộ..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-nav-bg/20 focus:border-nav-bg outline-none text-sm transition-all"
+                    />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <div className="w-full h-px bg-slate-100" />
+
+                {/* Filter Options */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Mã phiếu
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nhập mã phiếu cụ thể..."
+                      value={filterOptions.orderCode}
+                      onChange={(e) => setFilterOptions(p => ({ ...p, orderCode: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 focus:ring-2 focus:ring-nav-bg/20 outline-none text-sm transition-all"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Thời gian tạo phiếu
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {[
+                        { id: 'all', label: 'Toàn thời gian' },
+                        { id: 'today', label: 'Hôm nay' },
+                        { id: 'week', label: 'Tuần này' },
+                        { id: 'month', label: 'Tháng này' },
+                        { id: 'custom', label: 'Tùy chọn...' }
+                      ].map(time => (
+                        <button
+                          key={time.id}
+                          onClick={() => setFilterOptions(p => ({ ...p, time: time.id }))}
+                          className={`py-2 px-3 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
+                            filterOptions.time === time.id
+                              ? 'bg-nav-bg/10 border-nav-bg text-nav-bg'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          } ${time.id === 'custom' ? 'col-span-2' : ''}`}
+                        >
+                          {time.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {filterOptions.time === "custom" && (
+                      <div className="grid grid-cols-2 gap-2 animate-scale-in">
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Từ ngày</label>
+                          <input
+                            type="date"
+                            value={filterOptions.customDateStart}
+                            onChange={(e) => setFilterOptions(p => ({ ...p, customDateStart: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 focus:ring-2 focus:ring-nav-bg/20 outline-none text-xs text-slate-600 transition-all font-medium"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Đến ngày</label>
+                          <input
+                            type="date"
+                            value={filterOptions.customDateEnd}
+                            onChange={(e) => setFilterOptions(p => ({ ...p, customDateEnd: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 focus:ring-2 focus:ring-nav-bg/20 outline-none text-xs text-slate-600 transition-all font-medium"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative">
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Khách hàng
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Tên, SĐT, Địa chỉ KH..."
+                      value={filterOptions.customer}
+                      onChange={(e) => {
+                        setFilterOptions(p => ({ ...p, customer: e.target.value }));
+                        setShowCustomerSuggestions(true);
+                      }}
+                      onFocus={() => setShowCustomerSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowCustomerSuggestions(false), 200)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 focus:ring-2 focus:ring-nav-bg/20 outline-none text-sm transition-all"
+                    />
+                    {showCustomerSuggestions && filterOptions.customer.trim().length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto custom-scrollbar">
+                        {uniqueCustomers
+                          .filter((c) =>
+                            String(c.name || "").toLowerCase().includes(filterOptions.customer.toLowerCase()) ||
+                            String(c.phone || "").includes(filterOptions.customer)
+                          )
+                          .map((c) => (
+                            <div
+                              key={c.id}
+                              className="px-3 py-2.5 hover:bg-slate-50 cursor-pointer text-sm border-b border-slate-100 last:border-0 transition-colors"
+                              onClick={() => {
+                                setFilterOptions((p) => ({ ...p, customer: c.name || c.phone }));
+                                setShowCustomerSuggestions(false);
+                              }}
+                            >
+                              <div className="font-bold text-slate-700">{c.name}</div>
+                              <div className="text-xs text-slate-500">{c.phone}</div>
+                            </div>
+                          ))}
+                        {uniqueCustomers.filter((c) =>
+                          String(c.name || "").toLowerCase().includes(filterOptions.customer.toLowerCase()) ||
+                          String(c.phone || "").includes(filterOptions.customer)
+                        ).length === 0 && (
+                          <div className="px-3 py-3 text-xs text-center text-slate-400 italic">
+                            Không tìm thấy khách hàng
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span> Nhân viên lập
+                    </label>
+                    <select
+                      value={filterOptions.staff}
+                      onChange={(e) => setFilterOptions(p => ({ ...p, staff: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 hover:border-slate-300 focus:ring-2 focus:ring-nav-bg/20 outline-none text-sm transition-all bg-white appearance-none cursor-pointer"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em' }}
+                    >
+                      <option value="all">Tất cả nhân viên</option>
+                      {uniqueStaffs.map(staff => (
+                        <option key={staff.id} value={staff.id}>{staff.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-5 border-t border-slate-100 bg-slate-50 grid grid-cols-2 gap-3 mt-auto rounded-b-2xl">
+                <button
+                  onClick={() => {
+                    setFilterOptions({ time: "all", staff: "all", orderCode: "", customer: "", customDateStart: "", customDateEnd: "" });
+                    setSearchTerm("");
+                  }}
+                  className="h-11 rounded-xl bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 transition-colors text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                >
+                  Thiết lập lại
+                </button>
+                <button
+                  onClick={() => setShowFilterModal(false)}
+                  className="h-11 rounded-xl bg-nav-bg text-white hover:opacity-90 transition-all text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md hover:shadow-lg"
+                >
+                  Áp dụng <div className="bg-white/20 px-2 py-0.5 rounded text-xs ml-1">{filtered.length}</div>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>
