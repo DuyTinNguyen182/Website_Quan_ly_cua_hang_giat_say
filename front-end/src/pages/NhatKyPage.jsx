@@ -40,6 +40,11 @@ function renderDesc(text) {
   );
 }
 
+function sanitizeDescription(text = "") {
+  // Remove legacy suffix like: (POST /api/orders/abc123)
+  return String(text).replace(/\s*\(([A-Z]+)\s+\/api[^)]*\)\s*$/i, "").trim();
+}
+
 export default function NhatKyPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -86,7 +91,6 @@ export default function NhatKyPage() {
           <span className="material-symbols-outlined text-lg leading-none">chevron_left</span>
           NHẬT KÝ
         </button>
-
 
       </div>
 
@@ -146,7 +150,7 @@ export default function NhatKyPage() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-500 leading-relaxed">
-                    {renderDesc(log.description)}
+                    {renderDesc(sanitizeDescription(log.description))}
                   </p>
                 </div>
 
@@ -173,10 +177,6 @@ export default function NhatKyPage() {
         )}
       </div>
 
-
     </div>
   );
 }
-
-
-
