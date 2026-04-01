@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
 import { QRCodeSVG } from 'qrcode.react';
+import toast from 'react-hot-toast';
 import {
   PlusCircle,
   ChevronDown,
@@ -142,7 +143,7 @@ export default function NhanDoPage() {
         setSelectedShelf(order.shelf_id?.name || null);
         setPrintedCode(order.order_code ? String(order.order_code) : "");
       } catch {
-        alert("Không thể tải dữ liệu đơn để sửa!");
+        toast.error("Không thể tải dữ liệu đơn để sửa!");
       }
     };
 
@@ -165,7 +166,7 @@ export default function NhanDoPage() {
   }, [customerSearch]);
 
   /* --- derived --- */
-  const subtotal = selectedItems.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = selectedItems.reduce((s, i) => s + i.price * (Number(i.qty) || 0), 0);
   const discountAmount = isDiscountPercent
     ? Math.round((subtotal * discount) / 100)
     : discount;
@@ -189,14 +190,18 @@ export default function NhanDoPage() {
 
   const updateQty = (id, delta) => {
     setSelectedItems((prev) =>
-      prev
-        .map((i) => (i.id === id ? { ...i, qty: Math.max(1, i.qty + delta) } : i))
-        .filter((i) => i.qty > 0),
+      prev.map((i) => {
+        if (i.id === id) {
+          const currentQty = Number(i.qty) || 0;
+          const newQty = Math.round((currentQty + delta) * 10) / 10;
+          return { ...i, qty: Math.max(0.1, newQty) };
+        }
+        return i;
+      })
     );
   };
 
   const setExactQty = (id, quantity) => {
-    if (quantity <= 0 || isNaN(quantity)) return;
     setSelectedItems((prev) =>
       prev.map((i) => (i.id === id ? { ...i, qty: quantity } : i))
     );
@@ -229,7 +234,7 @@ export default function NhanDoPage() {
   /* --- add customer --- */
   const handleAddCustomer = async () => {
     if (!newCustomerFullName || !newCustomerPhone) {
-      alert("Vui lòng nhập tên và số điện thoại khách hàng!");
+      toast.error("Vui lòng nhập tên và số điện thoại khách hàng!");
       return;
     }
     try {
@@ -251,9 +256,9 @@ export default function NhanDoPage() {
       setNewCustomerFullName("");
       setNewCustomerPhone("");
       setNewCustomerAddress("");
-      alert("Tạo khách hàng mới thành công!");
+      toast.success("Tạo khách hàng mới thành công!");
     } catch (err) {
-      alert(err.response?.data?.message || "Lỗi khi tạo khách hàng!");
+      toast.error(err.response?.data?.message || "Lỗi khi tạo khách hàng!");
     }
   };
 
@@ -274,8 +279,8 @@ export default function NhanDoPage() {
   /* --- save order --- */
   const handleSave = async (print = false) => {
     if (selectedItems.length === 0) return;
-    if (!selectedCustomer) { alert("Vui lòng chọn khách hàng!"); return; }
-    if (!printedCode) { alert("Vui lòng in phiếu mã đơn trước khi lưu!"); return; }
+    if (!selectedCustomer) { toast.error("Vui lòng chọn khách hàng!"); return; }
+    if (!printedCode) { toast.error("Vui lòng in phiếu mã đơn trước khi lưu!"); return; }
 
     setSubmitting(true);
     try {
@@ -313,14 +318,14 @@ export default function NhanDoPage() {
             if (matched?._id) {
               existingByServiceId.delete(item.id);
               return axiosInstance.put(`/order-items/${matched._id}`, {
-                quantity: item.qty,
+                quantity: Number(item.qty) || 0,
                 price: item.price,
               });
             }
             return axiosInstance.post("/order-items", {
               order_id: editingOrder._id,
               service_id: item.id,
-              quantity: item.qty,
+              quantity: Number(item.qty) || 0,
               price: item.price,
             });
           })
@@ -331,8 +336,6 @@ export default function NhanDoPage() {
             .filter((item) => item?._id)
             .map((item) => axiosInstance.delete(`/order-items/${item._id}`))
         );
-
-        alert("Cập nhật đơn hàng thành công!");
       } else {
         const orderPayload = {
           order_code: printedCode,
@@ -355,23 +358,23 @@ export default function NhanDoPage() {
             axiosInstance.post("/order-items", {
               order_id: orderId,
               service_id: item.id,
-              quantity: item.qty,
+              quantity: Number(item.qty) || 0,
               price: item.price,
             })
           )
         );
       }
 
-      resetForm();
-      if (print) navigate("/danh-sach-do");
-      else {
-        if (!isEditMode) {
-          alert("Lưu thao tác thành công!");
-        }
+      if (print) {
+        resetForm();
+        navigate("/danh-sach-do");
+      } else {
+        toast.success(isEditMode ? "Cập nhật đơn hàng thành công!" : "Lưu thao tác thành công!");
+        resetForm();
         navigate("/danh-sach-do");
       }
     } catch (err) {
-      alert(err.response?.data?.message || (isEditMode ? "Lỗi khi cập nhật phiếu!" : "Lỗi khi tạo phiếu!"));
+      toast.error(err.response?.data?.message || (isEditMode ? "Lỗi khi cập nhật phiếu!" : "Lỗi khi tạo phiếu!"));
     } finally {
       setSubmitting(false);
     }
@@ -482,10 +485,15 @@ export default function NhanDoPage() {
                       </button>
                       <input
                         type="number"
-                        min="1"
+                        min="0.1"
+                        step="any"
                         value={item.qty}
-                        onChange={(e) => setExactQty(item.id, parseInt(e.target.value) || 1)}
-                        className="w-10 text-center font-bold border rounded hide-number-spinners py-0.5 text-sm"
+                        onChange={(e) => setExactQty(item.id, e.target.value)}
+                        onBlur={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setExactQty(item.id, isNaN(val) || val <= 0 ? 0.1 : val);
+                        }}
+                        className="w-12 text-center font-bold border rounded hide-number-spinners py-0.5 text-sm"
                       />
                       <button
                         onClick={() => updateQty(item.id, 1)}
@@ -498,7 +506,7 @@ export default function NhanDoPage() {
                       {formatMoney(item.price)}
                     </div>
                     <div className="col-span-2 text-right font-bold text-accent-blue">
-                      {formatMoney(item.price * item.qty)}
+                      {formatMoney(item.price * (Number(item.qty) || 0))}
                     </div>
                     <div className="col-span-1 flex justify-center">
                       <button
@@ -710,12 +718,12 @@ export default function NhanDoPage() {
                   type="button"
                   disabled={isGeneratingQR || selectedItems.length === 0}
                   onClick={async () => {
-                    if (selectedItems.length === 0) return alert("Vui lòng thêm dịch vụ!");
-                      if (!printedCode) return alert("Vui lòng Bấm In Phiếu Mã hoặc tạo mã phiếu hiển thị trước khi thanh toán!");
+                    if (selectedItems.length === 0) { toast.error("Vui lòng thêm dịch vụ!"); return; }
+                      if (!printedCode) { toast.error("Vui lòng In Phiếu Mã hoặc tạo mã phiếu hiển thị trước khi thanh toán!"); return; }
                       setIsGeneratingQR(true);
                       try {
                         // Tính tổng tiền
-                        const subtotal = selectedItems.reduce((acc, item) => acc + item.price * item.qty, 0);
+                        const subtotal = selectedItems.reduce((acc, item) => acc + item.price * (Number(item.qty) || 0), 0);
                         const discountAmount = isDiscountPercent ? (subtotal * discount) / 100 : discount;
                         const totalToPay = subtotal + surcharge - discountAmount;
                         
@@ -733,7 +741,7 @@ export default function NhanDoPage() {
                           setIsPrepaid(true); // Tự động check đã thanh toán nếu mở QR
                         }
                     } catch (error) {
-                      alert("Không thể tạo mã QR!");
+                      toast.error("Không thể tạo mã QR!");
                     } finally {
                       setIsGeneratingQR(false);
                     }

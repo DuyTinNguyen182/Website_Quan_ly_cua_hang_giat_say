@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
+import toast from "react-hot-toast";
 
 const PERMISSIONS = [
   { id: "nhan_do", label: "NHẬN ĐỒ", children: [] },
@@ -394,8 +395,9 @@ export default function PhanQuyenPage() {
     try {
       await axiosInstance.delete(`/users/${id}`);
       await loadStaff();
+      toast.success("Xóa nhân viên thành công!");
     } catch {
-      alert("Không thể xóa nhân viên này.");
+      toast.error("Không thể xóa nhân viên này.");
     }
   };
 

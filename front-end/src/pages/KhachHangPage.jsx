@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
+import toast from "react-hot-toast";
 
 export default function KhachHangPage() {
   const navigate = useNavigate();
@@ -70,8 +71,9 @@ export default function KhachHangPage() {
       await axiosInstance.delete(`/customers/${id}`);
       setCustomers((prev) => prev.filter((c) => c._id !== id));
       setDeleteId(null);
+      toast.success("Xóa khách hàng thành công!");
     } catch (err) {
-      alert(err.response?.data?.message || "Xóa thất bại");
+      toast.error(err.response?.data?.message || "Xóa thất bại");
       setDeleteId(null);
     }
   };

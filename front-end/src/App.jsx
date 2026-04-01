@@ -16,10 +16,12 @@ import TaiKhoanNganHangPage from "./pages/TaiKhoanNganHangPage";
 import PhanQuyenPage from "./pages/PhanQuyenPage";
 import NhatKyPage from "./pages/NhatKyPage";
 import DoiMatKhauPage from "./pages/DoiMatKhauPage";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <AuthProvider>
+    <Toaster position="top-right" />
     <Router>
       <Routes>
         <Route path="/" element={<LoginPage />} />

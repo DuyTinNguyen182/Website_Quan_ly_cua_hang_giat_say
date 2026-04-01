@@ -15,6 +15,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 const defaultTransactionDate = () => new Date().toISOString().slice(0, 10);
@@ -98,7 +99,8 @@ export default function ThuChiPage() {
     try {
       await axiosInstance.delete(`/transactions/${id}`);
       loadRecords();
-    } catch { alert("Không thể xóa!"); }
+      toast.success("Xóa phiếu thành công!");
+    } catch { toast.error("Không thể xóa!"); }
   };
 
   const handleEdit = (record) => {
@@ -135,8 +137,9 @@ export default function ThuChiPage() {
       setShowModal(false);
       resetForm();
       loadRecords();
+      toast.success(editingRecordId ? "Cập nhật phiếu thành công!" : "Tạo phiếu thành công!");
     } catch (err) {
-      alert(err.response?.data?.message || (editingRecordId ? "Lỗi khi cập nhật phiếu!" : "Lỗi khi tạo phiếu!"));
+      toast.error(err.response?.data?.message || (editingRecordId ? "Lỗi khi cập nhật phiếu!" : "Lỗi khi tạo phiếu!"));
     } finally {
       setSaving(false);
     }

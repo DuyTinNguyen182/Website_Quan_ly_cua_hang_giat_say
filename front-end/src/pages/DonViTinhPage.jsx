@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
+import toast from "react-hot-toast";
 
 export default function DonViTinhPage() {
   const navigate = useNavigate();
@@ -61,8 +62,9 @@ export default function DonViTinhPage() {
       await axiosInstance.delete(`/units/${id}`);
       setUnits((prev) => prev.filter((u) => u._id !== id));
       setDeleteId(null);
+      toast.success("Xóa thành công!");
     } catch (err) {
-      alert(err.response?.data?.message || "Xóa thất bại");
+      toast.error(err.response?.data?.message || "Xóa thất bại");
       setDeleteId(null);
     }
   };

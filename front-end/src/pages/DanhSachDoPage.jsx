@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
 import { QRCodeSVG } from "qrcode.react";
+import toast from 'react-hot-toast';
 import {
   Search,
   ChevronLeft,
@@ -656,7 +657,7 @@ export default function DanhSachDoPage() {
         setDetailTicket((prev) => (prev ? { ...prev, payment_status: "PAID", payment_method: "CASH" } : prev));
       }
     } catch {
-      alert("Lỗi cập nhật thanh toán!");
+      toast.error("Lỗi cập nhật thanh toán!");
     }
   };
 
@@ -665,7 +666,7 @@ export default function DanhSachDoPage() {
     try {
       await axiosInstance.patch(`/orders/${id}/status`, { status: newStatus });
       if (newStatus === "READY") {
-        alert("Đã cập nhật trạng thái và hệ thống đang tự động gửi SMS thông báo cho khách hàng!");
+        toast.success("Đã cập nhật trạng thái và hệ thống đang tự động gửi SMS thông báo cho khách hàng!");
       }
       if (detailTicket?._id === id) {
         setDetailTicket((prev) => (prev ? { ...prev, status: newStatus } : prev));
@@ -673,7 +674,7 @@ export default function DanhSachDoPage() {
       setStatusTicket(null);
       loadOrders();
     } catch {
-      alert("Không thể cập nhật trạng thái!");
+      toast.error("Không thể cập nhật trạng thái!");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -698,7 +699,7 @@ export default function DanhSachDoPage() {
         setQrCodeDataList(response.data.qrCode);
       }
     } catch {
-      alert("Không thể tạo mã QR. Vui lòng thử lại!");
+      toast.error("Không thể tạo mã QR. Vui lòng thử lại!");
       closePayOsModal();
     } finally {
       setIsGeneratingQRList(false);
@@ -761,9 +762,9 @@ export default function DanhSachDoPage() {
       if (detailTicket?._id === payOsTicket._id) {
         setDetailTicket((prev) => (prev ? { ...prev, payment_status: "PAID", payment_method: "BANK" } : prev));
       }
-      alert("Xác nhận thanh toán PayOS thành công!");
+      toast.success("Xác nhận thanh toán PayOS thành công!");
     } catch {
-      alert("Lỗi cập nhật thanh toán!");
+      toast.error("Lỗi cập nhật thanh toán!");
     }
   };
 
@@ -775,7 +776,7 @@ export default function DanhSachDoPage() {
         window.print();
       }, 300);
     } catch {
-      alert("Không thể lấy thông tin chi tiết đơn hàng để in!");
+      toast.error("Không thể lấy thông tin chi tiết đơn hàng để in!");
     }
   };
 
@@ -788,7 +789,7 @@ export default function DanhSachDoPage() {
       }
       loadOrders();
     } catch {
-      alert("Không thể xóa phiếu!");
+      toast.error("Không thể xóa phiếu!");
     }
   };
 
@@ -801,7 +802,7 @@ export default function DanhSachDoPage() {
       setDetailItems(res.data || []);
     } catch {
       setDetailItems([]);
-      alert("Không thể tải chi tiết đơn hàng!");
+      toast.error("Không thể tải chi tiết đơn hàng!");
     } finally {
       setDetailLoading(false);
     }
@@ -817,9 +818,9 @@ export default function DanhSachDoPage() {
       if (detailTicket?._id === editingTicket._id) {
         setDetailTicket((prev) => (prev ? { ...prev, ...payload } : prev));
       }
-      alert("Cập nhật phiếu thành công!");
+      toast.success("Cập nhật phiếu thành công!");
     } catch {
-      alert("Không thể cập nhật phiếu!");
+      toast.error("Không thể cập nhật phiếu!");
     } finally {
       setIsSavingEdit(false);
     }

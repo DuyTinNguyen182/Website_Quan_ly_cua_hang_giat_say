@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
 import { ChevronLeft, Download, LoaderCircle } from "lucide-react";
+import toast from "react-hot-toast";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 const formatDateVN = (value) => new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }).format(new Date(value));
@@ -357,9 +358,10 @@ export default function BaoCaoDoanhThuPage() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      toast.success("Xuất file thành công!");
     } catch (err) {
       console.error("Export report failed:", err);
-      alert("Không thể xuất file. Vui lòng thử lại.");
+      toast.error("Không thể xuất file. Vui lòng thử lại.");
     } finally {
       setIsExporting(false);
     }

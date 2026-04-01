@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
+import toast from "react-hot-toast";
 
 function formatPrice(value) {
   if (!value && value !== 0) return "";
@@ -90,8 +91,9 @@ export default function BangGiaDichVuPage() {
       await axiosInstance.delete(`/services/${id}`);
       setServices((prev) => prev.filter((s) => s._id !== id));
       setDeleteId(null);
+      toast.success("Xóa dịch vụ thành công!");
     } catch (err) {
-      alert(err.response?.data?.message || "Xóa thất bại");
+      toast.error(err.response?.data?.message || "Xóa thất bại");
       setDeleteId(null);
     }
   };
