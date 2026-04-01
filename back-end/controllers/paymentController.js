@@ -14,8 +14,11 @@ exports.createPaymentLink = async (req, res) => {
             return res.status(400).json({ error: "Amount and description are required" });
         }
 
+        // Tạo orderCode ngẫu nhiên hoàn toàn mới cho mỗi lần tạo mã QR
+        const payosOrderCode = generateOrderCode();
+
         const body = {
-            orderCode: orderCode ? Number(orderCode) : generateOrderCode(),
+            orderCode: payosOrderCode,
             amount: Number(amount),
             description: description.substring(0, 25), // PayOS limit description length
             returnUrl: returnUrl || "http://localhost:5173", // Frontend URL callback
@@ -23,6 +26,14 @@ exports.createPaymentLink = async (req, res) => {
         };
 
         const paymentLinkResponse = await payos.paymentRequests.create(body);
+
+        // Lưu payos_order_code vào CSDL để khi có webhook trả về ta biết nó thuộc đơn nào
+        if (orderCode) {
+            await Order.findOneAndUpdate(
+                { order_code: String(orderCode) },
+                { payos_order_code: payosOrderCode }
+            );
+        }
 
         return res.status(200).json({
             success: true,
@@ -45,11 +56,17 @@ exports.receiveWebhook = async (req, res) => {
         const data = await payos.webhooks.verify(webhookData);
 
         if (webhookData.code === "00" && data) {
-            const orderCode = data.orderCode;
+            const payosOrderCode = data.orderCode;
 
             // Thanh toán thành công - Cập nhật trạng thái đơn hàng trong DB
+            // Tìm theo payos_order_code mới thêm hoặc cả order_code (cho các đơn cũ)
             const order = await Order.findOneAndUpdate(
-                { order_code: String(orderCode) },
+                {
+                    $or: [
+                        { payos_order_code: Number(payosOrderCode) },
+                        { order_code: String(payosOrderCode) }
+                    ]
+                },
                 {
                     payment_status: "PAID",
                     payment_method: "BANK"
@@ -58,9 +75,9 @@ exports.receiveWebhook = async (req, res) => {
             );
 
             if (order) {
-                console.log(`[Webhook] Cập nhật thành công thanh toán Đơn hàng: ${orderCode}`);
+                console.log(`[Webhook] Cập nhật thành công thanh toán Đơn hàng: ${order.order_code}`);
             } else {
-                console.log(`[Webhook] CẢNH BÁO: Đã nhận thanh toán nhưng không tìm thấy đơn hàng ${orderCode} trong DB.`);
+                console.log(`[Webhook] CẢNH BÁO: Đã nhận thanh toán nhưng không tìm thấy đơn hàng ${payosOrderCode} trong DB.`);
             }
         }
 
