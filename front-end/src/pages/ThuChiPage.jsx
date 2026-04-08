@@ -1,4 +1,4 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 
 const formatCurrency = (n) => new Intl.NumberFormat("vi-VN").format(n);
 const defaultTransactionDate = () => new Date().toISOString().slice(0, 10);
@@ -95,7 +96,15 @@ export default function ThuChiPage() {
   );
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Xóa phiếu này?")) return;
+    const result = await Swal.fire({
+      title: "Xóa phiếu này?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#ef4444",
+    });
+    if (!result.isConfirmed) return;
     try {
       await axiosInstance.delete(`/transactions/${id}`);
       loadRecords();

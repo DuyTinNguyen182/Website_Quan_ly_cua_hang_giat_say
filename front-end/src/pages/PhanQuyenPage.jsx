@@ -1,9 +1,10 @@
-﻿import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../api/axiosInstance";
 import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
+import Swal from "sweetalert2";
 
 const PERMISSIONS = [
   { id: "nhan_do", label: "NHẬN ĐỒ", children: [] },
@@ -391,7 +392,15 @@ export default function PhanQuyenPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) return;
+    const result = await Swal.fire({
+      title: "Bạn có chắc chắn muốn xóa nhân viên này?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#ef4444",
+    });
+    if (!result.isConfirmed) return;
     try {
       await axiosInstance.delete(`/users/${id}`);
       await loadStaff();

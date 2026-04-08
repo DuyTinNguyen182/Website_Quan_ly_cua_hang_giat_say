@@ -1,10 +1,11 @@
-﻿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import Header from "../components/Header";
 import axiosInstance from "../api/axiosInstance";
 import { QRCodeSVG } from "qrcode.react";
 import toast from 'react-hot-toast';
+import Swal from 'sweetalert2';
 import {
   Search,
   ChevronLeft,
@@ -646,7 +647,15 @@ export default function DanhSachDoPage() {
   }, [user]);
 
   const handleConfirmPayment = async (id) => {
-    if (!window.confirm("Xác nhận đã thu tiền mặt cho đơn hàng này?")) return;
+    const result = await Swal.fire({
+      title: "Xác nhận đã thu tiền mặt cho đơn hàng này?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xác nhận",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#10b981",
+    });
+    if (!result.isConfirmed) return;
     try {
       await axiosInstance.patch(`/orders/${id}/payment`, {
         payment_status: "PAID",
@@ -781,7 +790,15 @@ export default function DanhSachDoPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Xóa phiếu này?")) return;
+    const result = await Swal.fire({
+      title: "Xóa phiếu này?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#ef4444",
+    });
+    if (!result.isConfirmed) return;
     try {
       await axiosInstance.delete(`/orders/${id}`);
       if (detailTicket?._id === id) {
